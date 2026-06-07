@@ -210,7 +210,7 @@ const isActive = (name: string): boolean => route.name === name;
 
     <div class="px-4 py-3 border-t border-neutral-300">
       <p class="font-sans text-label text-neutral-400 tracking-widest uppercase">
-        ITI Platform v2.0
+        ITI Platform
       </p>
     </div>
   </aside>
