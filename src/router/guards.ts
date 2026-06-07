@@ -10,6 +10,15 @@ export function authGuard(
 ): void {
     const auth = useAuthStore()
 
+    const publicRoutes = ['login', 'forgot-password']
+
+    if (publicRoutes.includes(to.name as string)) {
+        if (auth.isLoggedIn && auth.role) {
+            return next({ name: `${auth.role.replace('_', '-')}-dashboard` })
+        }
+        return next()
+    }
+
     if (!auth.isLoggedIn) {
         return next({ name: 'login' })
     }
@@ -17,7 +26,10 @@ export function authGuard(
     const requiredRole = to.meta.role as Role | undefined
 
     if (requiredRole && auth.role !== requiredRole) {
-        return next({ name: `${auth.role}-dashboard` })
+        if (auth.role) {
+            return next({ name: `${auth.role.replace('_', '-')}-dashboard` })
+        }
+        return next({ name: 'login' })
     }
 
     next()
