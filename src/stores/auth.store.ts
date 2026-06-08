@@ -8,7 +8,6 @@ import * as authApi from '@/api/modules/auth.api'
 export const useAuthStore = defineStore('auth', () => {
     const user = ref<User | null>(null)
     const token = ref<string | null>(localStorage.getItem('token'))
-
     const isLoggedIn = computed((): boolean => !!token.value)
     const role = computed((): Role | undefined => user.value?.role)
 
@@ -18,6 +17,15 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = res.data.data.user
         localStorage.setItem('token', token.value!)
     }
+    async function fetchUser(): Promise<void> {
+        try {
+            const res = await authApi.getMe()
+            user.value = res.data.data
+        } catch (error) {
+            logout()
+            throw error
+        }
+    }
 
     function logout(): void {
         user.value = null
@@ -25,5 +33,5 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('token')
     }
 
-    return { user, token, isLoggedIn, role, login, logout }
+    return { user, token, isLoggedIn, role, login, fetchUser, logout }
 })
