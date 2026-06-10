@@ -7,7 +7,7 @@ export const login = (data: LoginCredentials) =>
     api.post<ApiResponse<AuthResponse>>('/auth/login', data)
 
 export const logout = () =>
-    api.post<ApiResponse<void>>('/auth/logout')
+    api.post<ApiResponse<void>>('/v1/auth/logout')
 
 export const getMe = () =>
-    api.get<ApiResponse<AuthResponse['user']>>('/auth/me')
+    api.get<ApiResponse<AuthResponse['user']>>('/v1/auth/me')
