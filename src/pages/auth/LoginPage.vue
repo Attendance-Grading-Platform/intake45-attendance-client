@@ -28,7 +28,8 @@ const handleLogin = async () => {
   try {
     // Note: ensure your authStore expects an object if you are passing { email, password }
     await authStore.login({ email: email.value, password: password.value });
-    router.push("/");
+    const role = authStore.user?.role || "student";
+    router.push(`/${role.replace("_", "-")}/dashboard`);
   } catch (error: any) {
     const status = error.response?.status;
     const message = error.response?.data?.message?.toLowerCase() || "";
