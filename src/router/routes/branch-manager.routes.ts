@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/branch-manager/CohortsPage.vue'),
             },
             {
+                path: 'cohorts/:cohortId',
+                name: 'branch-manager-cohort-detail',
+                component: () => import('@/pages/branch-manager/CohortOverviewPage.vue'),
+            },
+            {
                 path: 'analytics',
                 name: 'branch-manager-analytics',
                 component: () => import('@/pages/branch-manager/AnalyticsPage.vue'),
