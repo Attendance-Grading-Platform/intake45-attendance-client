@@ -7,13 +7,14 @@ const cohortStore = useCohortStore();
 
 onMounted(async () => {
   await cohortStore.fetchCohorts();
-  if (cohortStore.cohorts.length > 0) {
-    await cohortStore.fetchCohortStudents(cohortStore.cohorts[0].id);
+  const firstCohort = cohortStore.cohorts[0];
+  if (firstCohort) {
+    await cohortStore.fetchCohortStudents(firstCohort.id);
   }
 });
 
 const activeCohortName = computed(() => {
-  return cohortStore.cohorts.length > 0 ? cohortStore.cohorts[0].name : 'No Active Cohorts';
+  return cohortStore.cohorts[0]?.name ?? 'No Active Cohorts';
 });
 </script>
 
