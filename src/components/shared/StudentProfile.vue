@@ -53,7 +53,7 @@ const groupedGrades = computed(() => {
     if (!groups[grade.course_name]) {
       groups[grade.course_name] = [];
     }
-    groups[grade.course_name].push(grade);
+    groups[grade.course_name]!.push(grade);
   });
   return groups;
 });
