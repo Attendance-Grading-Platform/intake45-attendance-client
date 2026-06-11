@@ -4,3 +4,6 @@ import type { Announcement } from '@/types/announcement.types'
 
 export const getCohortAnnouncements = (cohortId: number) =>
     api.get<ApiResponse<Announcement[]>>(`/v1/cohorts/${cohortId}/announcements`)
+
+export const getStudentAnnouncements = () =>
+    api.get<ApiResponse<Announcement[]>>(`/v1/me/announcements`)

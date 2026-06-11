@@ -31,7 +31,7 @@
                    <h2 class="font-serif text-h2 text-brand-red mb-3 leading-tight">{{ announcement.title }}</h2>
                    <p class="text-base text-neutral-600 line-clamp-3 mb-4">{{ announcement.body }}</p>
                  </div>
-                 <router-link :to="`/student/announcements/${announcement.id}`" class="text-base font-bold text-brand-red hover:underline underline-offset-4 flex items-center mt-2 group">
+                 <router-link to="/student/announcements" class="text-base font-bold text-brand-red hover:underline underline-offset-4 flex items-center mt-2 group">
                    Read more <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
                  </router-link>
              </div>
