@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import AppHeader  from '@/layouts/AppHeader.vue'
 import AppSidebar from '@/layouts/AppSidebar.vue'
 import AppFooter  from '@/layouts/AppFooter.vue'
+import StudentProfile from '@/components/shared/StudentProfile.vue'
 
 const sidebarOpen = ref<boolean>(true)
 </script>
@@ -29,5 +30,7 @@ const sidebarOpen = ref<boolean>(true)
         <AppFooter />
       </main>
     </div>
+    
+    <StudentProfile />
   </div>
 </template>
