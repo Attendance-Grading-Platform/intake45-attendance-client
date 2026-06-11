@@ -1,10 +1,9 @@
 // src/composables/useGrades.ts
 import { ref } from 'vue'
-import type { Grade } from '@/types/grade.types'
 import * as gradeApi from '@/api/modules/grade.api'
 
 export function useGrades() {
-    const grades = ref<Grade[]>([])
+    const grades = ref<any[]>([])
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
 

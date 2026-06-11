@@ -22,3 +22,6 @@ export interface Grade {
 
 export const getGrades = () =>
     api.get<ApiResponse<Grade[]>>('/v1/grades')
+
+export const getMyGrades = () =>
+    api.get<ApiResponse<Grade[]>>('/v1/me/grades')
