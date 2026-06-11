@@ -45,9 +45,11 @@ import { computed } from "vue";
 
 const groupedGrades = computed(() => {
   const groups: Record<string, any[]> = {};
-  if (!cohortStore.analytics?.grades_breakdown) return groups;
+  const grades = cohortStore.analytics?.grades_breakdown;
   
-  cohortStore.analytics.grades_breakdown.forEach(grade => {
+  if (!grades) return groups;
+  
+  grades.forEach(grade => {
     if (!groups[grade.course_name]) {
       groups[grade.course_name] = [];
     }
