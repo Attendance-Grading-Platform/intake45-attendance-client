@@ -6,6 +6,8 @@ defineProps<{
     confirmLabel?: string
     cancelLabel?: string
     loading?: boolean
+    hideCancel?: boolean
+    danger?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +39,7 @@ const emit = defineEmits<{
 
                     <div class="flex justify-end gap-3">
                         <button
+                            v-if="!hideCancel"
                             type="button"
                             class="h-[38px] px-4 text-sm font-sans rounded-[6px] border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
                             :disabled="loading"
@@ -47,7 +50,10 @@ const emit = defineEmits<{
 
                         <button
                             type="button"
-                            class="h-[38px] px-4 text-sm font-sans rounded-[6px] bg-brand-red text-brand-surface hover:bg-[#7a0002] transition-colors disabled:opacity-60 flex items-center gap-2"
+                            class="h-[38px] px-4 text-sm font-sans rounded-[6px] transition-colors disabled:opacity-60 flex items-center gap-2"
+                            :class="danger
+                                ? 'border border-danger text-danger hover:bg-danger-light'
+                                : 'bg-brand-red text-brand-surface hover:bg-[#7a0002]'"
                             :disabled="loading"
                             @click="emit('confirm')"
                         >
