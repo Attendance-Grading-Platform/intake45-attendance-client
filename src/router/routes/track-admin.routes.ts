@@ -58,6 +58,12 @@ const routes: RouteRecordRaw[] = [
                 name: 'track-admin-announcements',
                 component: () => import('@/pages/track-admin/AnnouncementsPage.vue'),
             },
+            {
+                path: 'cohorts/:cohortId/overview',
+                name: 'track-admin-cohort-overview',
+                component: () => import('@/pages/track-admin/CohortOverviewPage.vue'),
+                meta: { requiresAuth: true, role: 'track_admin' },
+            },
         ],
     },
 ]
