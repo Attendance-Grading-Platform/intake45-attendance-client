@@ -20,11 +20,11 @@ const props = withDefaults(defineProps<Props>(), {
   <button
     type="submit"
     :disabled="props.loading || props.disabled"
-    class="h-btn font-sans text-sm font-medium rounded-btn transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 px-5"
+    class="h-btn font-sans text-sm font-medium rounded-btn transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 px-5"
     :class="[
       props.variant === 'danger'
-        ? 'bg-white border border-danger text-danger hover:bg-danger-light'
-        : 'bg-brand-red text-brand-surface hover:opacity-90',
+        ? 'bg-neutral-0 border border-danger text-danger hover:bg-danger-light'
+        : 'bg-brand-red text-brand-surface hover:bg-brand-redHover active:bg-brand-redPress',
       props.fullWidth ? 'w-full' : '',
     ]"
   >

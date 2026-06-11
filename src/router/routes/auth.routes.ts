@@ -12,15 +12,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/auth/LoginPage.vue'),
     },
     {
-        path: '/signup',
-        name: 'signup',
-        component: () => import('@/pages/auth/SignupPage.vue'),
-    },
-    {
         path: '/forgot-password',
         name: 'forgot-password',
         component: () => import('@/pages/auth/ForgotPasswordPage.vue'),
     },
+    {
+        path: '/reset-password',
+        name: 'reset-password',
+        component: () => import('@/pages/auth/ResetPasswordPage.vue')
+    }
 ]
 
 export default routes
