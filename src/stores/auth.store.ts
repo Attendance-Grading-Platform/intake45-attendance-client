@@ -12,7 +12,11 @@ export const useAuthStore = defineStore('auth', () => {
     const role = computed((): Role | undefined => user.value?.role)
 
     async function login(credentials: LoginCredentials): Promise<void> {
+        // Fetch CSRF cookie to establish session (fixes 419 errors)
+        await authApi.getCsrfCookie()
+
         const res = await authApi.login(credentials)
+        // Adjusting to match backend structure: res.data.data.token and res.data.data.user
         token.value = res.data.data.token
         user.value = res.data.data.user
         localStorage.setItem('token', token.value!)

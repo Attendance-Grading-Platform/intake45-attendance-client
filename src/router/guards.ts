@@ -6,7 +6,7 @@ export async function authGuard(
     _from: RouteLocationNormalized
 ) {
     const auth = useAuthStore()
-    const publicRoutes = ['login', 'forgot-password']
+    const publicRoutes = ['login', 'forgot-password', 'reset-password']
 
     // load user first
     if (auth.isLoggedIn && !auth.user) {
