@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useCohortStore } from '@/stores/cohort.store';
 
+
 const cohortStore = useCohortStore();
 
 onMounted(async () => {
@@ -67,5 +68,5 @@ const activeCohortName = computed(() => {
         </table>
       </div>
       
-  </div>
+    </div>
 </template>
