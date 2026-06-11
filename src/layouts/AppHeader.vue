@@ -47,6 +47,24 @@ async function handleLogout(): Promise<void> {
   auth.logout();
   await router.push({ name: "login" });
 }
+
+// ── Directive ──────────────────────────────────────────────────
+const vClickOutside = {
+  mounted(el: any, binding: any) {
+    el.clickOutsideEvent = (event: MouseEvent) => {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event)
+      }
+    }
+    // Added delay to avoid catching the click that opened the menu
+    setTimeout(() => {
+      document.addEventListener('click', el.clickOutsideEvent)
+    }, 0)
+  },
+  unmounted(el: any) {
+    document.removeEventListener('click', el.clickOutsideEvent)
+  }
+}
 </script>
 
 <template>

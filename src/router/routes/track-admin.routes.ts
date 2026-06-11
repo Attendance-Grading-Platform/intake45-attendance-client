@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/track-admin/StudentsPage.vue'),
             },
             {
-                path: 'lab-groups',
+                path: 'cohorts/:cohortId/lab-groups',
                 name: 'track-admin-lab-groups',
                 component: () => import('@/pages/track-admin/LabGroupsPage.vue'),
             },

@@ -89,7 +89,14 @@ const quickLinks = computed(() => {
     }
     return [
         { label: 'Manage Students', icon: '👥', to: { name: 'track-admin-students' } },
-        { label: 'Manage Lab Groups', icon: '🏫', to: { name: 'track-admin-lab-groups' } },
+        { 
+            label: 'Manage Lab Groups', 
+            icon: '🏫', 
+            to: { 
+                name: 'track-admin-lab-groups', 
+                params: { cohortId: cohort.value?.id } 
+            } 
+        },
         { label: 'View Grades', icon: '📊', to: { name: 'track-admin-grades' } },
         { label: 'Schedule Engagements', icon: '📅', to: { name: 'track-admin-engagements' } },
     ]
