@@ -4,8 +4,20 @@ import type {
     Engagement,
     CreateEngagementPayload,
     UpdateEngagementPayload,
+    StoreEngagementPayload,
 } from '@/types/engagement.types'
 
+// --- Track Admin / Global Engagement Methods ---
+export const getEngagements = (params?: any) =>
+    api.get<ApiResponse<Engagement[]>>('/v1/engagements', { params })
+
+export const getEngagementById = (id: number) =>
+    api.get<ApiResponse<Engagement>>(`/v1/engagements/${id}`)
+
+export const createAdminEngagement = (data: StoreEngagementPayload) =>
+    api.post<ApiResponse<{ engagement: Engagement; sessions: any[]; sessions_count: number }>>('/v1/engagements', data)
+
+// --- Release Branch / Cohort specific methods ---
 interface ApiEngagement {
     id:              number
     type:            Engagement['type']

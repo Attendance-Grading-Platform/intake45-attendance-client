@@ -35,6 +35,16 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/track-admin/EngagementsPage.vue'),
             },
             {
+                path: 'engagements/create',
+                name: 'track-admin-engagement-create',
+                component: () => import('@/pages/track-admin/EngagementFormPage.vue'),
+            },
+            {
+                path: 'engagements/:id',
+                name: 'track-admin-engagement-details',
+                component: () => import('@/pages/track-admin/EngagementDetailsPage.vue'),
+            },
+            {
                 path: 'attendance',
                 name: 'track-admin-attendance',
                 component: () => import('@/pages/track-admin/AttendancePage.vue'),
