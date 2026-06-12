@@ -18,7 +18,9 @@ const payload = ref<StoreEngagementPayload>({
   start_date: '',
   end_date: '',
   scheduled_hours: 0,
-  days_of_week: []
+  days_of_week: [],
+  daily_start_time: '09:00:00',
+  daily_end_time: '12:00:00'
 })
 
 // Data options
@@ -88,6 +90,19 @@ function validateForm(): boolean {
     isValid = false
   }
 
+  if (!payload.value.daily_start_time) {
+    errors.value.daily_start_time = 'Start time is required.'
+    isValid = false
+  }
+  
+  if (!payload.value.daily_end_time) {
+    errors.value.daily_end_time = 'End time is required.'
+    isValid = false
+  } else if (payload.value.daily_start_time && payload.value.daily_end_time <= payload.value.daily_start_time) {
+    errors.value.daily_end_time = 'End time must be after start time.'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -120,7 +135,7 @@ async function handleSubmit() {
             <select v-model="payload.type" class="w-full form-select border-slate-300 rounded-md">
               <option value="lecture">Lecture</option>
               <option value="lab">Lab</option>
-              <option value="business_session">Business Session</option>
+              <option value="business">Business Session</option>
             </select>
           </div>
 
@@ -167,6 +182,20 @@ async function handleSubmit() {
             <label class="block text-sm font-medium text-slate-700 mb-1">End Date</label>
             <input type="date" v-model="payload.end_date" class="w-full form-input border-slate-300 rounded-md" />
             <p v-if="errors.end_date" class="text-red-500 text-xs mt-1">{{ errors.end_date }}</p>
+          </div>
+
+          <!-- Daily Start Time -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Session Start Time</label>
+            <input type="time" step="1" v-model="payload.daily_start_time" class="w-full form-input border-slate-300 rounded-md" />
+            <p v-if="errors.daily_start_time" class="text-red-500 text-xs mt-1">{{ errors.daily_start_time }}</p>
+          </div>
+
+          <!-- Daily End Time -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Session End Time</label>
+            <input type="time" step="1" v-model="payload.daily_end_time" class="w-full form-input border-slate-300 rounded-md" />
+            <p v-if="errors.daily_end_time" class="text-red-500 text-xs mt-1">{{ errors.daily_end_time }}</p>
           </div>
         </div>
 

@@ -82,30 +82,88 @@ const upcomingSessions = computed(() => {
     .slice(0, 5) // Show top 5
 })
 
+// Setup time grid
+const calendarStartHour = 8
+const calendarEndHour = 20
+const totalHours = calendarEndHour - calendarStartHour
+
+const timeSlots = computed(() => {
+  const slots = []
+  for (let i = calendarStartHour; i <= calendarEndHour; i++) {
+    slots.push(i)
+  }
+  return slots
+})
+
+function formatHour(hour: number) {
+  const h = hour % 12 || 12
+  const ampm = hour < 12 ? 'AM' : 'PM'
+  return `${h}:00 ${ampm}`
+}
+
+function parseTime(timeStr: string | null | undefined, defaultTime: string) {
+  if (!timeStr) timeStr = defaultTime
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours + (minutes / 60)
+}
+
+function getSessionPosition(session: any) {
+  const start = parseTime(session.start_time || session.parentEngagement?.daily_start_time, '09:00:00')
+  const end = parseTime(session.end_time || session.parentEngagement?.daily_end_time, '12:00:00')
+  
+  const visualStart = Math.max(calendarStartHour, start)
+  const visualEnd = Math.min(calendarEndHour, end)
+  
+  if (visualEnd <= visualStart) return { display: 'none' }
+  
+  const topPercentage = ((visualStart - calendarStartHour) / totalHours) * 100
+  const heightPercentage = ((visualEnd - visualStart) / totalHours) * 100
+  
+  return {
+    top: `${topPercentage}%`,
+    height: `${heightPercentage}%`,
+    position: 'absolute',
+    left: '4px',
+    right: '4px',
+    zIndex: 10
+  }
+}
+
+function formatTimeRange(session: any) {
+  const startStr = session.start_time || session.parentEngagement?.daily_start_time || '09:00:00'
+  const endStr = session.end_time || session.parentEngagement?.daily_end_time || '12:00:00'
+  
+  const formatTime = (t: string) => {
+    const [h, m] = t.split(':')
+    return `${h}:${m}`
+  }
+  return `${formatTime(startStr)} - ${formatTime(endStr)}`
+}
+
 // Color coding based on engagement type
 function getCardStyle(type: string) {
   switch (type) {
     case 'lecture':
-      return 'bg-rose-100 border-rose-200 text-rose-800'
+      return 'bg-rose-50/90 border-rose-200 text-rose-800'
     case 'lab':
-      return 'bg-indigo-100 border-indigo-200 text-indigo-800'
-    case 'business_session':
-      return 'bg-emerald-100 border-emerald-200 text-emerald-800'
+      return 'bg-indigo-50/90 border-indigo-200 text-indigo-800'
+    case 'business':
+      return 'bg-emerald-50/90 border-emerald-200 text-emerald-800'
     default:
-      return 'bg-slate-100 border-slate-200 text-slate-800'
+      return 'bg-slate-50/90 border-slate-200 text-slate-800'
   }
 }
 
 function getBadgeStyle(type: string) {
   switch (type) {
     case 'lecture':
-      return 'bg-rose-500 text-white'
+      return 'bg-rose-500'
     case 'lab':
-      return 'bg-indigo-500 text-white'
-    case 'business_session':
-      return 'bg-emerald-500 text-white'
+      return 'bg-indigo-500'
+    case 'business':
+      return 'bg-emerald-500'
     default:
-      return 'bg-slate-500 text-white'
+      return 'bg-slate-500'
   }
 }
 </script>
@@ -140,49 +198,83 @@ function getBadgeStyle(type: string) {
       </div>
 
       <!-- Calendar Grid -->
-      <div v-else class="flex-1 pb-4">
-        <div class="grid grid-cols-7 gap-2 xl:gap-4 min-h-[500px]">
-          <div v-for="day in weekDays" :key="day.toISOString()" class="flex flex-col border-r border-slate-100 last:border-r-0 pr-2 lg:pr-4 last:pr-0">
-            <div class="text-center pb-3 border-b border-slate-200 mb-3">
-              <div class="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{{ getDayName(day) }}</div>
-              <div class="text-lg lg:text-xl font-bold" :class="formatISODate(day) === formatISODate(new Date()) ? 'text-indigo-600 bg-indigo-50 w-8 h-8 lg:w-10 lg:h-10 mx-auto rounded-full flex items-center justify-center' : 'text-slate-700'">
-                {{ day.getDate() }}
-              </div>
-            </div>
-          
-          <!-- Stacked Sessions -->
-          <div class="flex-1 space-y-2 lg:space-y-3">
+      <div v-else class="flex-1 bg-white rounded-lg border border-slate-200 flex overflow-x-auto min-h-[600px]">
+        
+        <!-- Time Axis -->
+        <div class="w-16 lg:w-20 shrink-0 border-r border-slate-200 flex flex-col relative" style="min-height: 800px;">
+          <!-- Top empty header space for day names -->
+          <div class="h-16 lg:h-20 border-b border-slate-200 bg-slate-50 sticky top-0 z-20"></div>
+          <!-- Hours -->
+          <div class="flex-1 relative">
             <div 
-              v-for="session in getSessionsForDate(day)" 
-              :key="session.id"
-              @click="router.push({ name: 'track-admin-engagement-details', params: { id: session.parentEngagement.id } })"
-              class="px-2.5 py-2 rounded-md border cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md relative overflow-hidden flex flex-col group"
-              :class="getCardStyle(session.parentEngagement.type)"
+              v-for="hour in timeSlots" 
+              :key="hour" 
+              class="absolute w-full text-right pr-2 text-[10px] lg:text-xs text-slate-400 font-medium -mt-2.5"
+              :style="{ top: `${((hour - calendarStartHour) / totalHours) * 100}%` }"
             >
-              <!-- Small accent bar -->
-              <div class="absolute left-0 top-0 bottom-0 w-1 transition-all group-hover:w-1.5" :class="getBadgeStyle(session.parentEngagement.type)"></div>
-              
-              <div class="pl-1.5 lg:pl-2 flex flex-col h-full">
-                <div class="text-[10px] font-black uppercase tracking-wider mb-0.5 opacity-70 truncate">
-                  {{ session.parentEngagement.type.replace('_', ' ') }}
-                </div>
-                <div class="text-xs font-bold leading-snug mb-1.5 truncate text-slate-800">
-                  {{ session.parentEngagement.instructor?.name || 'Unknown' }}
-                </div>
-                <div class="text-[10px] opacity-80 mt-auto font-medium flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {{ session.parentEngagement.scheduled_hours }} Hrs
-                </div>
-              </div>
-            </div>
-            
-            <!-- Empty state for day -->
-            <div v-if="getSessionsForDate(day).length === 0" class="h-full min-h-[60px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-               <span class="text-[10px] text-slate-300 font-medium tracking-wide">—</span>
+              <span v-if="hour !== calendarStartHour">{{ formatHour(hour) }}</span>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- Days Grid -->
+        <div class="flex-1 min-w-[600px] grid grid-cols-7 relative">
+          <div 
+            v-for="day in weekDays" 
+            :key="day.toISOString()" 
+            class="flex flex-col border-r border-slate-100 last:border-r-0 relative group"
+          >
+            <!-- Day Header -->
+            <div class="h-16 lg:h-20 border-b border-slate-200 flex flex-col items-center justify-center bg-slate-50 sticky top-0 z-20 transition-colors group-hover:bg-slate-100">
+              <div class="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5 lg:mb-1">{{ getDayName(day) }}</div>
+              <div class="text-base lg:text-lg font-bold" :class="formatISODate(day) === formatISODate(new Date()) ? 'text-indigo-600 bg-indigo-100 w-7 h-7 lg:w-9 lg:h-9 flex items-center justify-center rounded-full' : 'text-slate-700'">
+                {{ day.getDate() }}
+              </div>
+            </div>
+
+            <!-- Day Timeline (with Grid Lines) -->
+            <div class="flex-1 relative bg-white" style="min-height: 800px;">
+              <!-- Horizontal Grid Lines -->
+              <div 
+                v-for="hour in timeSlots" 
+                :key="'line-'+hour" 
+                class="absolute w-full border-t border-slate-100"
+                :class="{ 'border-slate-200': hour === calendarStartHour || hour === calendarEndHour }"
+                :style="{ top: `${((hour - calendarStartHour) / totalHours) * 100}%`, zIndex: 0 }"
+              ></div>
+
+              <!-- Current Time Indicator (Optional enhancement: add red line for current time) -->
+              
+              <!-- Sessions -->
+              <div 
+                v-for="session in getSessionsForDate(day)" 
+                :key="session.id"
+                @click="router.push({ name: 'track-admin-engagement-details', params: { id: session.parentEngagement.id } })"
+                class="absolute rounded-md border cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] hover:z-20 overflow-hidden flex flex-col backdrop-blur-sm shadow-sm"
+                :class="getCardStyle(session.parentEngagement.type)"
+                :style="getSessionPosition(session)"
+              >
+                <!-- Color bar -->
+                <div class="absolute left-0 top-0 bottom-0 w-1 transition-all group-hover:w-1.5" :class="getBadgeStyle(session.parentEngagement.type)"></div>
+                
+                <div class="pl-2 lg:pl-3 p-1 lg:p-2 flex flex-col h-full overflow-hidden">
+                  <div class="text-[9px] lg:text-[10px] font-black uppercase tracking-wider opacity-80 truncate">
+                    {{ session.parentEngagement.type.replace('_', ' ') }}
+                  </div>
+                  <div class="text-[10px] lg:text-xs font-bold leading-tight truncate text-slate-800 mt-0.5">
+                    {{ session.parentEngagement.instructor?.name || 'Instructor' }}
+                  </div>
+                  <div class="text-[9px] opacity-75 mt-auto truncate font-medium flex items-center gap-1">
+                    <svg class="w-2.5 h-2.5 lg:w-3 lg:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {{ formatTimeRange(session) }}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

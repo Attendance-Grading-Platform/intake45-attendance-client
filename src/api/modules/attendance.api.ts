@@ -10,5 +10,17 @@ export interface StudentAttendanceResponse {
     records: AttendanceRecord[]
 }
 
-export const getStudentAttendance = (studentId: number) =>
-    api.get<ApiResponse<StudentAttendanceResponse>>(`/v1/students/${studentId}/attendance`)
+export const getStudentAttendance = () =>
+    api.get<ApiResponse<StudentAttendanceResponse>>(`/v1/me/attendance`)
+
+export interface ScanPayload {
+    session_id: number
+    student_id: number
+}
+
+export const scanSessionQR = (payload: ScanPayload) =>
+    api.post<ApiResponse<void>>('/v1/attendance/scan', payload)
+
+// Pre-flight check for instructors to get their active sessions right now
+export const getActiveSessions = () =>
+    api.get<ApiResponse<{ id: number, engagement_id: number }[]>>('/v1/sessions/active')

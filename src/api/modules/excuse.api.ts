@@ -28,8 +28,14 @@ export interface ExcuseRequest {
 export const getExcuses = () =>
     api.get<ApiResponse<ExcuseRequest[]>>('/v1/excuses')
 
+export const createExcuse = (data: FormData) =>
+    api.post<ApiResponse<ExcuseRequest>>('/v1/excuses', data)
+
 export const approveExcuse = (id: number) =>
     api.put<ApiResponse<ExcuseRequest>>(`/v1/excuses/${id}/approve`, { status: 'approved' })
 
 export const rejectExcuse = (id: number) =>
     api.put<ApiResponse<ExcuseRequest>>(`/v1/excuses/${id}/reject`, { status: 'rejected' })
+
+export const getAbsentSessions = () =>
+    api.get<ApiResponse<any[]>>('/v1/me/absent-sessions')
