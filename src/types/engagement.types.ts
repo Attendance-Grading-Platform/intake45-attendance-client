@@ -7,12 +7,14 @@ export interface UpcomingSession {
     type:     EngagementType
 }
 
-export type EngagementType = 'lecture' | 'lab' | 'business_session'
+export type EngagementType = 'lecture' | 'lab' | 'business'
 
 export interface EngagementSession {
     id: number
     engagement_id: number
     session_date: string
+    start_time?: string | null
+    end_time?: string | null
     delivered: boolean
     delivered_at: string | null
     created_at: string
@@ -70,6 +72,8 @@ export interface LegacyEngagement {
     hours_per_session: string
     scheduled_hours: number
     days_of_week: number[]
+    daily_start_time?: string | null
+    daily_end_time?: string | null
     created_at: string
     instructor?: {
         id: number
@@ -91,6 +95,8 @@ export interface StoreEngagementPayload {
     end_date: string
     scheduled_hours: number
     days_of_week: number[]
+    daily_start_time?: string
+    daily_end_time?: string
 }
 
 export interface LabDeliverable {
