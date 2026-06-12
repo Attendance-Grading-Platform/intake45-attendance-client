@@ -79,21 +79,57 @@
           </div>
         </div>
         
-        <!-- My Progress -->
+        <!-- Upcoming Deadlines -->
         <div class="bg-neutral-0 border border-neutral-300 rounded-card p-6">
           <div class="flex justify-between items-center mb-6 border-b border-neutral-300 pb-4">
-            <h3 class="text-label text-neutral-500">MY PROGRESS</h3>
+            <h3 class="text-label text-neutral-500">UPCOMING DEADLINES</h3>
           </div>
           
-          <div v-if="gradeStore.isLoading" class="text-neutral-600">
-            Loading progress...
+          <div v-if="deliverableStore.isLoading" class="text-neutral-600">
+            Loading deadlines...
           </div>
-          <div v-else-if="gradeStore.grades.length === 0" class="text-neutral-600">
-            No grades available yet.
+          <div v-else-if="pendingDeliverables.length === 0" class="text-neutral-600">
+            No upcoming deadlines!
           </div>
-          <div v-else class="h-[200px] w-full">
-            <Line :data="chartData" :options="chartOptions" />
+          <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+            <div v-for="deliv in pendingDeliverables" :key="deliv.id" class="flex justify-between items-center bg-neutral-50 p-4 rounded-btn border border-neutral-200">
+              <div>
+                <p class="font-bold text-sm text-neutral-800">{{ deliv.title }}</p>
+                <p class="text-xs text-neutral-500">{{ deliv.course_name }} • Due: {{ formatDate(deliv.due_date) }}</p>
+              </div>
+              <button 
+                @click="openSubmissionModal(deliv)" 
+                class="px-4 py-2 bg-brand-red text-white text-sm font-medium rounded-btn hover:bg-brand-red/90 transition-colors"
+              >
+                Submit
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submission Modal -->
+    <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+      <div class="bg-white rounded-[10px] shadow-lg w-full max-w-md overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-neutral-200 flex justify-between items-center">
+          <div>
+            <h3 class="font-serif text-xl text-neutral-900">Submit Assignment</h3>
+            <p class="text-sm text-neutral-500">{{ selectedDeliverable?.title }}</p>
+          </div>
+          <button @click="closeSubmissionModal" class="text-neutral-400 hover:text-neutral-600">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="p-6 overflow-y-auto">
+          <AssignmentSubmission 
+            :isSubmitting="isSubmitting"
+            @submit-payload="handleComponentSubmit"
+          />
+          <p v-if="formError" class="mt-4 text-sm text-danger text-center">{{ formError }}</p>
         </div>
       </div>
     </div>
@@ -101,31 +137,20 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useCohortStore } from '@/stores/cohort.store'
 import { useAnnouncementsStore } from '@/stores/announcements.store'
 import { useAttendanceStore } from '@/stores/attendance.store'
-import { useGradeStore } from '@/stores/grade.store'
-import { Line } from 'vue-chartjs'
-import {
-  Chart as ChartJS,
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-  CategoryScale,
-  LinearScale
-} from 'chart.js'
-
-ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale)
+import { useDeliverableStore } from '@/stores/deliverable.store'
+import AssignmentSubmission from '@/components/student/AssignmentSubmission.vue'
+import type { Deliverable } from '@/api/modules/deliverable.api'
 
 const authStore = useAuthStore()
 const cohortStore = useCohortStore()
 const announcementsStore = useAnnouncementsStore()
 const attendanceStore = useAttendanceStore()
-const gradeStore = useGradeStore()
+const deliverableStore = useDeliverableStore()
 
 const ledgerBalance = computed(() => {
     return attendanceStore.studentAttendance?.ledger_balance || 0
@@ -151,50 +176,67 @@ const displayedAnnouncements = computed(() => {
     return announcementsStore.announcements.slice(0, 2)
 })
 
+const pendingDeliverables = computed(() => {
+    return deliverableStore.deliverables
+        .filter(d => d.status === 'pending')
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+})
+
 const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return 'OCT 12'
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 }
 
-const chartData = computed(() => {
-    const sortedGrades = [...gradeStore.grades].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
-    
-    return {
-        labels: sortedGrades.map((g, idx) => g.course?.name || `Milestone ${idx + 1}`),
-        datasets: [
-            {
-                label: 'Normalized Score',
-                backgroundColor: '#940002',
-                borderColor: '#940002',
-                data: sortedGrades.map(g => g.normalized_score || g.raw_score),
-                tension: 0.4
-            }
-        ]
-    }
-})
+// Modal and Submission State
+const showModal = ref(false)
+const selectedDeliverable = ref<Deliverable | null>(null)
+const isSubmitting = ref(false)
+const formError = ref('')
 
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-        y: {
-            beginAtZero: true,
-            max: 100
-        }
-    },
-    plugins: {
-        legend: {
-            display: false
-        }
-    }
+const openSubmissionModal = (deliverable: Deliverable) => {
+    selectedDeliverable.value = deliverable
+    formError.value = ''
+    showModal.value = true
 }
 
+const closeSubmissionModal = () => {
+    showModal.value = false
+    selectedDeliverable.value = null
+}
+
+const handleComponentSubmit = async (emittedFormData: FormData) => {
+    if (!selectedDeliverable.value) return
+
+    isSubmitting.value = true
+    formError.value = ''
+
+    try {
+        const formData = new FormData()
+        formData.append('course_component_id', selectedDeliverable.value.id.toString())
+        
+        // Map the payload keys from the teammate's component to the backend's expected keys
+        const url = emittedFormData.get('url')
+        const file = emittedFormData.get('file')
+        
+        if (url) formData.append('submission_url', url as string)
+        if (file) formData.append('submission_file', file as Blob)
+
+        await deliverableStore.submitDeliverable(formData)
+        closeSubmissionModal()
+    } catch (err: any) {
+        formError.value = err.response?.data?.message || 'Failed to submit assignment. Please try again.'
+    } finally {
+        isSubmitting.value = false
+    }
+}
 onMounted(async () => {
     if (authStore.user?.id) {
         attendanceStore.fetchStudentAttendance(authStore.user.id)
-        gradeStore.fetchGrades()
     }
+    
+    // Fetch deliverables for the Upcoming Deadlines card
+    await deliverableStore.fetchMyDeliverables()
     
     await cohortStore.fetchCohorts()
     // Find active cohort to fetch announcements
