@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useCohortStore } from '@/stores/cohort.store';
-import DashboardLayout from '@/layouts/DashboardLayout.vue';
+
 
 const cohortStore = useCohortStore();
 
@@ -19,8 +19,7 @@ const activeCohortName = computed(() => {
 </script>
 
 <template>
-  <DashboardLayout>
-    <div class="bg-[#FFFFFF] p-[24px] rounded-[10px] border border-[#E0D4B8]">
+  <div class="bg-[#FFFFFF] p-[24px] rounded-[10px] border border-[#E0D4B8]">
       
       <div class="mb-6">
         <h3 class="font-sans text-[11px] text-[#888888] uppercase tracking-[1.5px] mb-1">
@@ -70,5 +69,4 @@ const activeCohortName = computed(() => {
       </div>
       
     </div>
-  </DashboardLayout>
 </template>

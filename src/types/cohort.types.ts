@@ -9,6 +9,8 @@ export interface Cohort {
     updated_at: string
 }
 
+
+
 export interface CourseComponent {
     id: number
     type: 'lab_deliverable' | 'final_exam'
@@ -41,12 +43,46 @@ export interface Track {
 export interface CohortRow {
     id: number
     name: string
-    status: 'active' | 'closed'
+    track_id: number
     started_at: string
-    ended_at: string | null
-    track: { id: number; name: string }
+    closed_at: string | null
+    status: 'active' | 'closed'
     students_count: number
+    track: Track
     track_admins: Array<{ id: number; name: string }>
+}
+
+// ── Lab Groups ────────────────────────────────────────────────
+export interface LabGroupStudent {
+    id: number
+    name: string
+    email: string
+}
+export type Student = LabGroupStudent
+
+export interface LabGroupInstructor {
+    id: number
+    name: string
+    email: string
+}
+
+export interface LabGroup {
+    id: number    // 0 if not yet saved to backend
+    name: string
+    instructor: LabGroupInstructor | null
+    students: LabGroupStudent[]
+}
+
+export interface CreateLabGroupPayload {
+    name: string
+}
+
+export interface AssignStudentsPayload {
+    user_ids: number[]
+}
+
+export interface AssignInstructorPayload {
+    user_ids: number[]
 }
 
 export interface CreateCohortPayload {

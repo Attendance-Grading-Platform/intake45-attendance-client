@@ -58,7 +58,7 @@ export const useEngagementStore = defineStore('engagement', () => {
         isLoading.value = true
         error.value = null
         try {
-            await engagementApi.createEngagement(payload)
+            await engagementApi.createAdminEngagement(payload)
             // Refresh list after creation
             await fetchAll()
         } catch (err: any) {
