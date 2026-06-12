@@ -1,4 +1,3 @@
-// src/router/routes/branch-manager.routes.ts
 import type { RouteRecordRaw } from 'vue-router'
 import BranchManagerLayout from '@/layouts/BranchManagerLayout.vue'
 
@@ -12,6 +11,11 @@ const routes: RouteRecordRaw[] = [
                 path: 'dashboard',
                 name: 'branch-manager-dashboard',
                 component: () => import('@/pages/branch-manager/DashboardPage.vue'),
+            },
+            {
+                path: 'accounts',
+                name: 'branch-manager-accounts',
+                component: () => import('@/pages/branch-manager/AccountsPage.vue'),
             },
             {
                 path: 'tracks',
