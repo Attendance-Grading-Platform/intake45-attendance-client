@@ -30,7 +30,7 @@ onMounted(async () => {
     const activeRes = await getActiveSessions()
     const active = activeRes.data.data || []
     
-    if (active.length > 0) {
+    if (active.length > 0 && active[0]?.id) {
       activeSessionId.value = active[0].id
     }
 
@@ -68,10 +68,11 @@ onMounted(async () => {
 
       // Separate into Upcoming and Past
       allSessions.forEach(sess => {
-        const sessDate = sess.session_date.split('T')[0]
+        const sessDate = sess.session_date.split('T')[0] || ''
+        const sessEndTime = sess.end_time || '23:59:59'
         
         // It's past if the date is before today, OR if it's today but the end_time has passed
-        const isPast = sessDate < todayISO || (sessDate === todayISO && sess.end_time < currentTime)
+        const isPast = sessDate < (todayISO || '') || (sessDate === todayISO && sessEndTime < (currentTime || ''))
         
         // We exclude the currently active session from upcoming/past arrays
         if (activeSessionId.value && sess.id === activeSessionId.value) {

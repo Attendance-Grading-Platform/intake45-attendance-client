@@ -65,7 +65,7 @@ function validateForm(): boolean {
     errors.value.start_date = 'Start date is required.'
     isValid = false
   } else {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0] || ''
     if (payload.value.start_date < today) {
       errors.value.start_date = 'Start date cannot be in the past.'
       isValid = false

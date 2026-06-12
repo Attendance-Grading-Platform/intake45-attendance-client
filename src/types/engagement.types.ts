@@ -7,7 +7,7 @@ export interface UpcomingSession {
     type:     EngagementType
 }
 
-export type EngagementType = 'lecture' | 'lab' | 'business'
+export type EngagementType = 'lecture' | 'lab' | 'business_session'
 
 export interface EngagementSession {
     id: number
@@ -23,11 +23,14 @@ export interface EngagementSession {
 export interface Engagement {
     id:                number
     type:              EngagementType
-    instructor:        { id: number; name: string }
+    instructor:        { id: number; name: string; email?: string }
     start_date:        string
     end_date:          string
     hours_per_session: number
+    scheduled_hours?:  number
     lab_groups:        Array<{ id: number; name: string }>
+    cohorts?:          Array<{ id: number; name: string }>
+    sessions?:         EngagementSession[]
 }
 
 export interface LabGroupOption {

@@ -21,6 +21,7 @@ const handleFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     const file = target.files[0]
+    if (!file) return
     
     // Validate type
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png']

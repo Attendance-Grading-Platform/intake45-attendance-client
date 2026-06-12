@@ -20,6 +20,7 @@ function getEngagementTitle(e: Engagement): string {
         case 'business_session':
             return `Business Session — ${e.instructor.name}`
     }
+    return ''
 }
 
 function formatDayTime(date: string, time = '08:00'): string {

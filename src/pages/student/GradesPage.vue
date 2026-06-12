@@ -121,7 +121,7 @@ const expandedCourses = ref<number[]>([])
 
 onMounted(async () => {
   if (authStore.user?.id) {
-    attendanceStore.fetchStudentAttendance(authStore.user.id)
+    attendanceStore.fetchStudentAttendance()
     gradeStore.fetchGrades()
   }
 })

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { getExcuses, createExcuse, type ExcuseRequest } from '@/api/modules/excuse.api'
+import api from '@/api/axios'
 
 export function useExcuses() {
     const excuses = ref<ExcuseRequest[]>([])
@@ -62,6 +63,7 @@ export function useExcuses() {
             
             // Refresh the list after submission
             await fetchExcuses()
+            await fetchAbsentSessions()
         } catch (err: any) {
             if (err.response) {
                 errorMsg.value = err.response.data?.message || 'Failed to submit excuse'

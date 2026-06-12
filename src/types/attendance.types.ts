@@ -6,6 +6,8 @@ export interface AttendanceRecord {
     session_id: number
     scan_in_at: string | null
     scan_out_at: string | null
+    arrived_at?: string | null
+    left_at?: string | null
     status: AttendanceStatus
 }
 

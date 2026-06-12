@@ -15,7 +15,7 @@ export const useEngagementStore = defineStore('engagement', () => {
         const sessionsList: (EngagementSession & { parentEngagement: Engagement })[] = []
         engagements.value.forEach(eng => {
             if (eng.sessions && eng.sessions.length > 0) {
-                eng.sessions.forEach(session => {
+                eng.sessions.forEach((session: EngagementSession) => {
                     sessionsList.push({
                         ...session,
                         parentEngagement: eng

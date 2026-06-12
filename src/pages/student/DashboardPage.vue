@@ -232,7 +232,7 @@ const handleComponentSubmit = async (emittedFormData: FormData) => {
 }
 onMounted(async () => {
     if (authStore.user?.id) {
-        attendanceStore.fetchStudentAttendance(authStore.user.id)
+        attendanceStore.fetchStudentAttendance()
     }
     
     // Fetch deliverables for the Upcoming Deadlines card
