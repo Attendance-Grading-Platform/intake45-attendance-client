@@ -27,6 +27,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'courses',
                 name: 'track-admin-courses',
                 component: () => import('@/pages/track-admin/CoursesPage.vue'),
+                meta: { requiresAuth: true, role: 'track_admin' },
             },
             {
                 path: 'engagements',
