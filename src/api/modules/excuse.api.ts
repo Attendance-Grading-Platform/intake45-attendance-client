@@ -29,7 +29,11 @@ export const getExcuses = () =>
     api.get<ApiResponse<ExcuseRequest[]>>('/v1/excuses')
 
 export const createExcuse = (data: FormData) =>
-    api.post<ApiResponse<ExcuseRequest>>('/v1/excuses', data)
+    api.post<ApiResponse<ExcuseRequest>>('/v1/excuses', data, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
 
 export const approveExcuse = (id: number) =>
     api.put<ApiResponse<ExcuseRequest>>(`/v1/excuses/${id}/approve`, { status: 'approved' })

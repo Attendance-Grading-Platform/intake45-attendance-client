@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import { getBranchAnalytics, getAtRiskStudents } from '@/api/modules/analytics.api'
+import { useAuthStore } from '@/stores/auth.store'
+import { useCohortStore } from '@/stores/cohort.store'
 
 export function useAtRisk() {
     const cohorts = ref<any[]>([])
@@ -12,8 +14,26 @@ export function useAtRisk() {
         isLoading.value = true
         errorMsg.value = null
         try {
-            const res = await getBranchAnalytics()
-            cohorts.value = res.data.data || []
+            const authStore = useAuthStore()
+            
+            if (authStore.user?.role === 'branch_manager') {
+                const res = await getBranchAnalytics()
+                const data = res.data.data || []
+                cohorts.value = data.map((item: any) => ({
+                    cohort_id: item.meta?.cohort_id || item.cohort_id,
+                    cohort_name: item.meta?.cohort_name || item.cohort_name
+                }))
+            } else {
+                // track_admin or other
+                const cohortStore = useCohortStore()
+                if (cohortStore.cohorts.length === 0) {
+                    await cohortStore.fetchCohorts()
+                }
+                cohorts.value = cohortStore.cohorts.map(c => ({
+                    cohort_id: c.id,
+                    cohort_name: c.name
+                }))
+            }
             
             if (cohorts.value.length > 0) {
                 // Select the first cohort by default

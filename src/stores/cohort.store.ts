@@ -110,6 +110,12 @@ export const useCohortStore = defineStore('cohort', () => {
         ]);
 
         if (tagsRes.status === "fulfilled") tags.value = tagsRes.value.data.data || [];
+        else if (tagsRes.reason?.response?.status === 403) {
+            closeStudentProfile();
+            alert("You do not have permission to view this student's profile.");
+            return;
+        }
+        
         if (notesRes.status === "fulfilled") notes.value = notesRes.value.data.data || [];
         if (analyticsRes.status === "fulfilled") analytics.value = analyticsRes.value.data.data || null;
         if (attendanceRes.status === "fulfilled") attendanceRecords.value = attendanceRes.value.data.data.records || [];

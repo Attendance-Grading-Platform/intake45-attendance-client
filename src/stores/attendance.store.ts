@@ -7,10 +7,10 @@ export const useAttendanceStore = defineStore('attendance', () => {
     const studentAttendance = ref<StudentAttendanceResponse | null>(null)
     const isLoading = ref(false)
 
-    async function fetchStudentAttendance(studentId: number) {
+    async function fetchStudentAttendance() {
         isLoading.value = true
         try {
-            const res = await attendanceApi.getStudentAttendance(studentId)
+            const res = await attendanceApi.getStudentAttendance()
             studentAttendance.value = res.data.data
         } finally {
             isLoading.value = false

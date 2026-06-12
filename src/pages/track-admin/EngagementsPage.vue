@@ -103,7 +103,9 @@ function formatHour(hour: number) {
 
 function parseTime(timeStr: string | null | undefined, defaultTime: string) {
   if (!timeStr) timeStr = defaultTime
-  const [hours, minutes] = timeStr.split(':').map(Number)
+  const parts = timeStr.split(':')
+  const hours = Number(parts[0] || 0)
+  const minutes = Number(parts[1] || 0)
   return hours + (minutes / 60)
 }
 
@@ -122,7 +124,7 @@ function getSessionPosition(session: any) {
   return {
     top: `${topPercentage}%`,
     height: `${heightPercentage}%`,
-    position: 'absolute',
+    position: 'absolute' as const,
     left: '4px',
     right: '4px',
     zIndex: 10
