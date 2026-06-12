@@ -29,11 +29,22 @@ const isDragging    = ref<boolean>(false)
 const selectedFile  = ref<File | null>(null)
 const localError    = ref<string>('')
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
-
 function validateFile(file: File): string | null {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-        return 'Only PDF or image files are allowed'
+    // Basic dynamic MIME validation based on accept prop
+    if (props.accept) {
+        const allowed = props.accept.split(',').map(s => s.trim());
+        const isMatch = allowed.some(type => {
+            if (type.endsWith('/*')) {
+                return file.type.startsWith(type.replace('/*', '/'));
+            }
+            if (type.startsWith('.')) {
+                return file.name.toLowerCase().endsWith(type.toLowerCase());
+            }
+            return file.type === type;
+        });
+        if (!isMatch) {
+            return `Invalid file type. Allowed: ${props.accept}`;
+        }
     }
     const maxBytes = props.maxSizeMb * 1024 * 1024
     if (file.size > maxBytes) {
