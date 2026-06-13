@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
                 name: 'instructor-deliverables',
                 component: () => import('@/pages/instructor/DeliverablesPage.vue'),
             },
+            {
+                path: 'submissions',
+                name: 'instructor-submissions',
+                component: () => import('@/pages/instructor/SubmissionReviewPage.vue'),
+            },
         ],
     },
 ]
