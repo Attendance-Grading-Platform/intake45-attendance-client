@@ -15,7 +15,7 @@
             v-model="selectedCohortId"
             class="appearance-none bg-neutral-0 border border-neutral-300 rounded-input px-4 pr-10 py-2 text-base font-sans text-neutral-800 focus:outline-none focus:border-brand-red"
           >
-            <option v-for="c in cohortStore.cohorts" :key="c.id" :value="c.id">
+            <option v-for="c in (cohortStore.cohorts as any[])" :key="c.id" :value="c.id">
               {{ c.name }}
             </option>
           </select>
@@ -57,7 +57,7 @@
               class="appearance-none bg-neutral-0 border border-neutral-300 rounded-input pl-3 pr-8 py-1.5 text-base font-sans text-neutral-800 focus:outline-none focus:border-brand-red"
             >
               <option value="ALL">All Groups</option>
-              <option v-for="g in labGroups" :key="g" :value="g">{{ g }}</option>
+              <option v-for="g in (labGroups as any[])" :key="g" :value="g">{{ g }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-neutral-500">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@
           </thead>
           <tbody class="divide-y divide-neutral-200">
             <tr
-              v-for="student in paginatedStudents"
+              v-for="student in (paginatedStudents as any[])"
               :key="student.id"
               class="cursor-pointer hover:bg-[#FAFAFA] transition-colors"
               @click.stop.prevent="cohortStore.openStudentProfile(student.id, student.name, activeCohort?.name || 'Cohort', student.labGroup || 'Unassigned')"
@@ -182,7 +182,7 @@
               <td class="p-4.5">
                 <div class="flex flex-wrap gap-1.5 max-w-[220px]">
                   <span
-                    v-for="tag in student.tags"
+                    v-for="tag in (student.tags as any[])"
                     :key="tag.id"
                     class="px-2 py-0.5 border rounded text-[10px] font-sans font-medium uppercase tracking-wider whitespace-nowrap"
                     :class="isDangerTag(tag.tag) ? 'border-danger text-danger bg-danger-light' : 'border-neutral-300 text-neutral-600 bg-neutral-50'"
@@ -306,6 +306,22 @@ import { useAnalyticsStore } from '@/stores/analytics.store'
 const cohortStore = useCohortStore()
 const analyticsStore = useAnalyticsStore()
 
+interface StudentAnalytics {
+  student_id: number
+  attendance_rate: number
+  gpa: number
+  is_at_risk: boolean
+}
+
+interface StudentRow {
+  id: number
+  name: string
+  email: string
+  is_active: boolean
+  enrolled_lab_groups: Array<{ name: string }>
+  tags: Array<{ id: number; tag: string }>
+}
+
 const selectedCohortId = ref<number | null>(null)
 const searchQuery = ref('')
 const filterLabGroup = ref('ALL')
@@ -344,9 +360,10 @@ const activeCohort = computed(() => {
 // Dynamic list of unique lab groups present in current cohort students
 const labGroups = computed(() => {
   const groups = new Set<string>()
-  cohortStore.students.forEach(s => {
+  const students = cohortStore.students as unknown as StudentRow[]
+  students.forEach(s => {
     if (s.enrolled_lab_groups && s.enrolled_lab_groups.length > 0) {
-      s.enrolled_lab_groups.forEach((lg: { name?: string }) => {
+      s.enrolled_lab_groups.forEach((lg) => {
         if (lg.name) groups.add(lg.name)
       })
     }
@@ -356,11 +373,13 @@ const labGroups = computed(() => {
 
 // Build full student data row representation
 const studentDataRows = computed(() => {
-  const analyticsStudents = analyticsStore.cohortAnalytics?.students || []
+  const cohortAnalytics = analyticsStore.cohortAnalytics as any
+  const analyticsStudents = (cohortAnalytics?.students || []) as StudentAnalytics[]
+  const students = cohortStore.students as unknown as StudentRow[]
   
-  return cohortStore.students.map(student => {
+  return students.map(student => {
     // find matching analytics record to get gpa & attendance rate
-    const ana = analyticsStudents.find((a: { student_id?: number; attendance_rate?: number; gpa?: number }) => a.student_id === student.id)
+    const ana = analyticsStudents.find((a) => a.student_id === student.id)
     
     const attendanceRate = ana ? Number(ana.attendance_rate) : 100
     // normalize 0-100 GPA to a 4.0 scale for display to match mockup

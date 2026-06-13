@@ -35,9 +35,25 @@ export interface CohortDetail {
     courses: Course[]
 }
 
+export interface TrackRef {
+    id: number
+    name: string
+}
+
+export interface ActiveCohort {
+    id: number
+    name: string
+    status: 'active' | 'closed'
+    started_at: string
+    ended_at: string | null
+    students_count: number
+}
+
 export interface Track {
     id: number
     name: string
+    active_cohort: ActiveCohort | null
+    cohorts_count: number
 }
 
 export interface CohortRow {
@@ -48,7 +64,7 @@ export interface CohortRow {
     closed_at: string | null
     status: 'active' | 'closed'
     students_count: number
-    track: Track
+    track: TrackRef
     track_admins: Array<{ id: number; name: string }>
 }
 

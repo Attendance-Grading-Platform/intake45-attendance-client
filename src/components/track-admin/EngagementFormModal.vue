@@ -185,7 +185,7 @@ watch(
                 @click.self="handleClose"
             >
                 <div
-                    class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
+                    class="relative w-full max-w-lg bg-white rounded-[10px] border border-[#C9BDB8] p-6 max-h-[90vh] overflow-y-auto"
                     role="dialog"
                     aria-modal="true"
                 >
@@ -220,8 +220,8 @@ watch(
                                     type="button"
                                     class="text-sm font-medium px-4 py-1.5 rounded-full transition-colors"
                                     :class="form.type === t.value
-                                        ? 'bg-[#8B1A1A] text-white'
-                                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'"
+                                        ? 'bg-[#940002] text-[#E6DDD4]'
+                                        : 'border border-[#C9BDB8] text-[#666666] hover:bg-[#F5EDEA]'"
                                     @click="form.type = t.value"
                                 >
                                     {{ t.label }}
@@ -417,7 +417,7 @@ watch(
                         </button>
                         <button
                             type="button"
-                            class="h-[38px] px-4 text-sm rounded-lg bg-[#8B1A1A] text-white hover:bg-[#6F1414] disabled:opacity-50 flex items-center gap-2"
+                            class="h-[38px] px-4 text-sm rounded-[6px] bg-[#940002] text-[#E6DDD4] hover:bg-[#7a0002] disabled:opacity-50 flex items-center gap-2"
                             :disabled="!isValid || saving"
                             @click="handleSave"
                         >

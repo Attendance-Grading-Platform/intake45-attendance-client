@@ -1,31 +1,34 @@
+export interface CohortAnalyticsStudent {
+    student_id: number
+    name: string
+    attendance_rate: number
+    gpa: number
+    is_at_risk: boolean
+}
+
 export interface CohortAnalyticsMeta {
     cohort_id: number
     cohort_name: string
-    active_tracks?: number
-    students_count: number
-    at_risk_count: number
-    billing_generated?: boolean
-    average_grade?: number
-    attendance_percentage?: number
+    student_count: number
+    total_sessions: number
 }
 
-export interface StudentAnalyticsSummary {
-    student_id: number
-    name: string
-    ledger_balance: number
-    gpa: number
-    is_at_risk: boolean
-    lab_group_name?: string
+export interface CohortAnalyticsAverages {
+    attendance_rate: number
+    pass_rate: number
 }
 
-export interface AtRiskResponse {
-    cohort_name: string
-    at_risk_count: number
-    at_risk_students: StudentAnalyticsSummary[]
+export interface CohortAnalytics {
+    meta: CohortAnalyticsMeta
+    averages: CohortAnalyticsAverages
+    students: CohortAnalyticsStudent[]
+    track_name?: string
 }
 
-export interface LabGroupAnalytics {
-    lab_group_id: number
-    lab_group_name: string
-    students: StudentAnalyticsSummary[]
+export interface BranchSummary {
+    totalStudents: number
+    totalAtRisk: number
+    cohortCount: number
+    avgAttendance: number
+    avgPassRate: number
 }

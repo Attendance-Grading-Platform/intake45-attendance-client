@@ -2,13 +2,13 @@ import { ref, computed } from 'vue'
 import { listCohorts, createCohort as apiCreateCohort, closeCohort as apiCloseCohort } from '@/api/modules/cohort.api'
 import { listTracks } from '@/api/modules/track.api'
 import { listUsers } from '@/api/modules/user.api'
-import type { CohortRow, Track, CreateCohortPayload } from '@/types/cohort.types'
+import type { CohortRow, TrackRef, CreateCohortPayload } from '@/types/cohort.types'
 import type { UserSummary } from '@/api/modules/user.api'
 
 export function useCohorts() {
     // Data
     const cohorts = ref<CohortRow[]>([])
-    const tracks = ref<Track[]>([])
+    const tracks = ref<TrackRef[]>([])
     const trackAdmins = ref<UserSummary[]>([])
 
     // Loading states
@@ -79,7 +79,15 @@ export function useCohorts() {
                 if (message.toLowerCase().includes('active cohort')) {
                     formError.value = 'This track already has an active cohort. You must close the existing cohort before creating a new one.'
                 } else {
-                   const fieldErrors = ref<Record<string, string>>({})
+                    const errs = e.response.data?.errors ?? {}
+                    const mapped: Record<string, string> = {}
+                    for (const k in errs) {
+                        const messages = errs[k]
+                        if (Array.isArray(messages) && messages.length > 0) {
+                            mapped[k] = messages[0] || ''
+                        }
+                    }
+                    fieldErrors.value = mapped
                 }
             } else if (e.response?.status === 403) {
                 formError.value = 'Only Branch Managers can create cohorts.'

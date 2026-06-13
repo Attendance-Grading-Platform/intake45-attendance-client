@@ -85,7 +85,7 @@ const getAttachmentUrl = (path: string) => {
         <ExcuseForm 
           ref="formRef"
           :is-submitting="isSubmitting"
-          :absent-sessions="absentSessions"
+          :absent-sessions="(absentSessions as any[])"
           @submit="handleExcuseSubmit"
         />
       </div>

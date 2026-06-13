@@ -54,7 +54,6 @@ const routes: RouteRecordRaw[] = [
                 name: 'track-admin-grades',
                 component: () => import('@/pages/track-admin/GradesPage.vue'),
             },
-
             {
                 path: 'excuses',
                 name: 'track-admin-excuses',

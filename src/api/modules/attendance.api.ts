@@ -24,3 +24,10 @@ export const scanSessionQR = (payload: ScanPayload) =>
 // Pre-flight check for instructors to get their active sessions right now
 export const getActiveSessions = () =>
     api.get<ApiResponse<{ id: number, engagement_id: number }[]>>('/v1/sessions/active')
+
+export const getSessionAttendance = (sessionId: number) =>
+    api.get<ApiResponse<{
+        session_id: number
+        session_date: string
+        records: Array<{ student_id: number; arrived_at: string | null }>
+    }>>(`/v1/sessions/${sessionId}/attendance`)

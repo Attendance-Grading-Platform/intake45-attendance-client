@@ -24,8 +24,7 @@ const payload = ref<StoreEngagementPayload>({
 })
 
 // Data options
-interface InstructorOption { id: number; name: string }
-const instructors = ref<InstructorOption[]>([])
+const instructors = ref<unknown[]>([])
 const daysOptions = [
   { value: 0, label: 'Sunday' },
   { value: 1, label: 'Monday' },
@@ -145,7 +144,7 @@ async function handleSubmit() {
             <label class="block text-sm font-medium text-slate-700 mb-1">Cohort</label>
             <select v-model="payload.cohort_id" class="w-full form-select border-slate-300 rounded-md">
               <option value="0" disabled>Select Cohort</option>
-              <option v-for="cohort in cohortStore.cohorts" :key="cohort.id" :value="cohort.id">
+              <option v-for="cohort in (cohortStore.cohorts as any[])" :key="cohort.id" :value="cohort.id">
                 {{ cohort.name }}
               </option>
             </select>
@@ -157,7 +156,7 @@ async function handleSubmit() {
             <label class="block text-sm font-medium text-slate-700 mb-1">Instructor</label>
             <select v-model="payload.instructor_id" class="w-full form-select border-slate-300 rounded-md">
               <option value="0" disabled>Select Instructor</option>
-              <option v-for="instructor in instructors" :key="instructor.id" :value="instructor.id">
+              <option v-for="instructor in (instructors as any[])" :key="instructor.id" :value="instructor.id">
                 {{ instructor.name }}
               </option>
             </select>
@@ -204,7 +203,7 @@ async function handleSubmit() {
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-2">Days of Week</label>
           <div class="flex flex-wrap gap-4">
-            <label v-for="day in daysOptions" :key="day.value" class="flex items-center space-x-2 cursor-pointer">
+            <label v-for="day in (daysOptions as any[])" :key="day.value" class="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" :value="day.value" v-model="payload.days_of_week" class="form-checkbox text-indigo-500 rounded" />
               <span class="text-sm text-slate-600">{{ day.label }}</span>
             </label>

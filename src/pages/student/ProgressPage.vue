@@ -1,64 +1,32 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Line, Bar } from 'vue-chartjs'
+import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Tooltip,
   Legend,
   Filler,
-  type Plugin,
 } from 'chart.js'
+import ProgressChart from '@/components/charts/ProgressChart.vue'
+import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart.vue'
 import {
   getStudentProgress,
   type StudentProgressPayload,
 } from '@/api/modules/progress.api'
 
-// ── Chart.js Registration ────────────────────────
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Tooltip,
   Legend,
   Filler,
 )
-
-// ── Threshold Line Plugin (dashed at 60%) ────────
-const thresholdPlugin: Plugin = {
-  id: 'thresholdLine',
-  afterDraw(chart) {
-    const yAxis = chart.scales.y
-    if (!yAxis) return
-
-    const yPixel = yAxis.getPixelForValue(60)
-    const ctx = chart.ctx
-
-    ctx.save()
-    ctx.beginPath()
-    ctx.setLineDash([6, 4])
-    ctx.strokeStyle = '#dc2626'
-    ctx.lineWidth = 1.5
-    ctx.moveTo(chart.chartArea.left, yPixel)
-    ctx.lineTo(chart.chartArea.right, yPixel)
-    ctx.stroke()
-
-    // Label
-    ctx.fillStyle = '#dc2626'
-    ctx.font = '11px "DM Sans", sans-serif'
-    ctx.textAlign = 'left'
-    ctx.fillText('Pass Threshold (60)', chart.chartArea.left + 6, yPixel - 6)
-    ctx.restore()
-  },
-}
-
-ChartJS.register(thresholdPlugin)
 
 // ── Reactive State ───────────────────────────────
 const isLoading = ref(true)
@@ -77,121 +45,6 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
-
-/* ═══════════════════════════════════════════════════
- |  Section 1 — Academic Score Progression (Line)
- ═══════════════════════════════════════════════════*/
-
-const scoreChartData = computed(() => {
-  const d = progress.value?.score_progression ?? []
-  return {
-    labels: d.map((s) => {
-      const [y, m] = s.month.split('-')
-      const date = new Date(Number(y), Number(m) - 1)
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-    }),
-    datasets: [
-      {
-        label: 'Average Score (%)',
-        data: d.map((s) => s.average),
-        borderColor: '#940002',
-        backgroundColor: 'rgba(148, 0, 2, 0.08)',
-        fill: true,
-        tension: 0.35,
-        pointRadius: 5,
-        pointBackgroundColor: '#940002',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointHoverRadius: 7,
-        spanGaps: true,
-      },
-    ],
-  }
-})
-
-const scoreChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  spanGaps: true,
-  scales: {
-    y: {
-      min: 0,
-      max: 100,
-      ticks: { stepSize: 20, font: { family: 'DM Sans, sans-serif', size: 11 } },
-      grid: { color: 'rgba(0,0,0,0.05)' },
-    },
-    x: {
-      ticks: { font: { family: 'DM Sans, sans-serif', size: 11 } },
-      grid: { display: false },
-    },
-  },
-  plugins: {
-    legend: { display: false },
-    tooltip: {
-      backgroundColor: '#1e293b',
-      titleFont: { family: 'DM Sans, sans-serif', size: 13 },
-      bodyFont:  { family: 'DM Sans, sans-serif', size: 12 },
-      padding: 10,
-      cornerRadius: 6,
-    },
-  },
-}
-
-/* ═══════════════════════════════════════════════════
- |  Section 2a — Attendance Trend (Stacked Bar)
- ═══════════════════════════════════════════════════*/
-
-const attendanceChartData = computed(() => {
-  const d = progress.value?.attendance_trend ?? []
-  return {
-    labels: d.map((w) => w.week),
-    datasets: [
-      {
-        label: 'Present',
-        data: d.map((w) => w.present),
-        backgroundColor: '#059669',
-        borderRadius: 4,
-      },
-      {
-        label: 'Missed',
-        data: d.map((w) => w.missed),
-        backgroundColor: '#dc2626',
-        borderRadius: 4,
-      },
-    ],
-  }
-})
-
-const attendanceChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-    x: {
-      stacked: true,
-      ticks: { font: { family: 'DM Sans, sans-serif', size: 10 } },
-      grid: { display: false },
-    },
-    y: {
-      stacked: true,
-      beginAtZero: true,
-      ticks: { stepSize: 1, font: { family: 'DM Sans, sans-serif', size: 11 } },
-      grid: { color: 'rgba(0,0,0,0.05)' },
-    },
-  },
-  plugins: {
-    legend: {
-      position: 'bottom' as const,
-      labels: { padding: 12, usePointStyle: true, pointStyleWidth: 10, font: { family: 'DM Sans, sans-serif', size: 11 } },
-    },
-    tooltip: {
-      backgroundColor: '#1e293b',
-      titleFont: { family: 'DM Sans, sans-serif', size: 13 },
-      bodyFont:  { family: 'DM Sans, sans-serif', size: 12 },
-      padding: 10,
-      cornerRadius: 6,
-    },
-  },
-}
 
 /* ═══════════════════════════════════════════════════
  |  Section 2b — Ledger History (Stepped Line)
@@ -362,12 +215,7 @@ const finalIndexColor = computed(() => {
           </div>
         </div>
 
-        <div v-if="progress?.score_progression?.length" class="h-[280px]">
-          <Line :data="scoreChartData" :options="scoreChartOptions" />
-        </div>
-        <div v-else class="py-12 text-center">
-          <p class="font-sans text-sm text-neutral-400">No grade data available yet.</p>
-        </div>
+        <ProgressChart :data="progress?.score_progression" />
       </div>
 
       <!-- ═══════════════════════════════════════════
@@ -392,12 +240,7 @@ const finalIndexColor = computed(() => {
             </div>
           </div>
 
-          <div v-if="progress?.attendance_trend?.length" class="h-[240px]">
-            <Bar :data="attendanceChartData" :options="attendanceChartOptions" />
-          </div>
-          <div v-else class="py-12 text-center">
-            <p class="font-sans text-sm text-neutral-400">No attendance records yet.</p>
-          </div>
+          <AttendanceTrendChart :data="progress?.attendance_trend" />
         </div>
 
         <!-- 2b: Ledger History (Stepped Line) -->

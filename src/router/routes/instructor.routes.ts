@@ -18,6 +18,7 @@ const routes: RouteRecordRaw[] = [
                 name: 'instructor-attendance',
                 component: () => import('@/pages/instructor/AttendancePage.vue'),
             },
+
             {
                 path: 'grades',
                 name: 'instructor-grades',
@@ -34,14 +35,14 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/instructor/DeliverablesPage.vue'),
             },
             {
-                path: 'submissions',
-                name: 'instructor-submissions',
-                component: () => import('@/pages/instructor/SubmissionReviewPage.vue'),
-            },
-            {
                 path: 'profile',
                 name: 'instructor-profile',
                 component: () => import('@/pages/shared/ProfilePage.vue'),
+            },
+            {
+                path: 'submissions',
+                name: 'instructor-submissions',
+                component: () => import('@/pages/instructor/SubmissionReviewPage.vue'),
             },
         ],
     },
