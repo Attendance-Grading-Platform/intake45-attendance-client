@@ -124,7 +124,8 @@
             <tr
               v-for="student in paginatedStudents"
               :key="student.id"
-              class="hover:bg-neutral-50 transition-colors"
+              class="cursor-pointer hover:bg-[#FAFAFA] transition-colors"
+              @click.stop.prevent="cohortStore.openStudentProfile(student.id, student.name, activeCohort?.name || 'Cohort', student.labGroup || 'Unassigned')"
             >
               <!-- Name & Initials Avatar -->
               <td class="p-4.5 whitespace-nowrap">

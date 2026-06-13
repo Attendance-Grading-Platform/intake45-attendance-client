@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import type { ComponentFormState, CreateComponentPayload } from '@/types/course.types'
 import ConfigureWeightsForm from '@/components/courses/ConfigureWeightsForm.vue'
 
+// --- Props & Emits ---
 const props = defineProps<{
     open: boolean
     saving: boolean
@@ -13,6 +14,7 @@ const emit = defineEmits<{
     save: [name: string, components: CreateComponentPayload[]]
 }>()
 
+// --- State ---
 const step = ref<1 | 2>(1)
 const courseName = ref('')
 
@@ -21,15 +23,60 @@ const exam = ref<ComponentFormState>({ included: true, weight: 50, due_date: nul
 
 const weightsFormRef = ref<InstanceType<typeof ConfigureWeightsForm> | null>(null)
 
+// Get today's date in YYYY-MM-DD format to prevent past-date scheduling
+const todayISO = new Date().toISOString().split('T')[0]
+
+// --- Computed Validations ---
+
+// Step 1 Validation: Ensure course name has substance
 const isNameValid = computed(() => courseName.value.trim().length >= 2)
 
+/**
+ * FIX 1: The NaN Bug (Strict Number Parsing)
+ * Safely parses the inputs as floats to prevent string concatenation (e.g., "50" + "50" = "5050").
+ */
 const totalWeight = computed(() => {
-    const labW = lab.value.included ? lab.value.weight : 0
-    const examW = exam.value.included ? exam.value.weight : 0
+    const labW = lab.value.included ? (parseFloat(String(lab.value.weight)) || 0) : 0
+    const examW = exam.value.included ? (parseFloat(String(exam.value.weight)) || 0) : 0
     return labW + examW
 })
 
-const canSave = computed(() => totalWeight.value === 100)
+/**
+ * FIX 2 & 3: Chronological & Past Date Validations
+ * Enforces business logic: Dates cannot be in the past, and Labs must precede Finals.
+ */
+const dateValidationErrors = computed(() => {
+    const errors: string[] = []
+    const labDate = lab.value.due_date
+    const examDate = exam.value.due_date
+
+    // Rule A: No scheduling in the past
+    if (lab.value.included && labDate && labDate < todayISO) {
+        errors.push('Dates cannot be scheduled in the past.')
+    }
+    if (exam.value.included && examDate && examDate < todayISO) {
+        // Prevent duplicate error messages
+        if (!errors.includes('Dates cannot be scheduled in the past.')) {
+            errors.push('Dates cannot be scheduled in the past.')
+        }
+    }
+
+    // Rule B: Lab deliverables must be due BEFORE the Final Exam
+    if (lab.value.included && exam.value.included && labDate && examDate) {
+        if (labDate > examDate) {
+            errors.push('Lab deliverables must be due before the final exam.')
+        }
+    }
+
+    return errors
+})
+
+// Step 2 Validation: Weights must sum to 100 AND dates must be logically valid
+const canSave = computed(() => {
+    return totalWeight.value === 100 && dateValidationErrors.value.length === 0
+})
+
+// --- Methods ---
 
 function resetForm() {
     step.value = 1
@@ -53,21 +100,27 @@ function goToStep1() {
     step.value = 1
 }
 
+/**
+ * Constructs the final payload to send to Laravel.
+ * Ensures weights are safely cast to Numbers before transmission.
+ */
 function buildComponents(): CreateComponentPayload[] {
     const components: CreateComponentPayload[] = []
 
-    if (lab.value.included && lab.value.weight > 0) {
+    const parsedLabWeight = parseFloat(String(lab.value.weight)) || 0
+    if (lab.value.included && parsedLabWeight > 0) {
         components.push({
             type: 'lab_deliverable',
-            weight: lab.value.weight,
+            weight: parsedLabWeight,
             due_date: lab.value.due_date,
         })
     }
 
-    if (exam.value.included && exam.value.weight > 0) {
+    const parsedExamWeight = parseFloat(String(exam.value.weight)) || 0
+    if (exam.value.included && parsedExamWeight > 0) {
         components.push({
             type: 'final_exam',
-            weight: exam.value.weight,
+            weight: parsedExamWeight,
             due_date: exam.value.due_date,
         })
     }
@@ -80,6 +133,7 @@ function handleSave() {
     emit('save', courseName.value.trim(), buildComponents())
 }
 
+// Reset form automatically when modal closes from external triggers
 watch(
     () => props.open,
     (isOpen) => {
@@ -104,7 +158,6 @@ defineExpose({ resetForm })
                     aria-modal="true"
                     aria-labelledby="add-course-title"
                 >
-                    <!-- Step 1 -->
                     <template v-if="step === 1">
                         <h2 id="add-course-title" class="font-serif text-[22px] text-neutral-800 mb-1">
                             Add Course
@@ -121,7 +174,7 @@ defineExpose({ resetForm })
                                 v-model="courseName"
                                 type="text"
                                 placeholder="e.g. Laravel, Vue.js, Database Design"
-                                class="h-input w-full rounded-input border border-neutral-300 px-3 font-sans text-base focus:outline-none focus:border-brand-red"
+                                class="h-input w-full rounded-input border border-neutral-300 px-3 font-sans text-base focus:outline-none focus:border-brand-red transition-colors"
                                 @keydown.enter.prevent="goToStep2"
                             />
                             <p class="font-sans text-xs text-neutral-500 text-right tabular-nums">
@@ -149,14 +202,26 @@ defineExpose({ resetForm })
                         </div>
                     </template>
 
-                    <!-- Step 2 -->
                     <template v-else>
+                        <h2 class="font-serif text-[22px] text-neutral-800 mb-1">
+                            Configure Components
+                        </h2>
+                        <p class="font-sans text-sm text-neutral-600 mb-6">
+                            {{ courseName }}
+                        </p>
+
                         <ConfigureWeightsForm
                             ref="weightsFormRef"
                             v-model:lab="lab"
                             v-model:exam="exam"
                             :course-name="courseName.trim()"
                         />
+
+                        <div v-if="dateValidationErrors.length > 0" class="mt-4 p-3 bg-red-50 border border-red-100 rounded-md">
+                            <ul class="list-disc pl-5 text-sm text-[#8B1A1A] font-medium space-y-1">
+                                <li v-for="error in dateValidationErrors" :key="error">{{ error }}</li>
+                            </ul>
+                        </div>
 
                         <div class="flex justify-between gap-3 mt-8">
                             <button
@@ -181,7 +246,7 @@ defineExpose({ resetForm })
                                     type="button"
                                     class="h-[38px] px-4 text-sm font-sans rounded-[6px] bg-[#8B1A1A] text-white hover:bg-[#7a0002] transition-colors disabled:opacity-50 flex items-center gap-2"
                                     :disabled="!canSave || saving"
-                                    :title="!canSave ? 'Weights must sum to exactly 100' : undefined"
+                                    :title="!canSave ? 'Weights must sum to exactly 100 and dates must be logically valid' : undefined"
                                     @click="handleSave"
                                 >
                                     <svg v-if="saving" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
