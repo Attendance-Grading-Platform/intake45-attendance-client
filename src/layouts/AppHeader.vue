@@ -198,6 +198,9 @@ const vClickOutside = {
               <p class="font-sans text-xs text-neutral-500 truncate mt-0.5">
                 {{ auth.user?.email }}
               </p>
+              <p v-if="auth.user?.expiry_date" class="font-sans text-xs text-brand-red font-medium truncate mt-1">
+                Expires: {{ new Date(auth.user.expiry_date).toLocaleDateString() }}
+              </p>
             </div>
 
             <div class="py-1">

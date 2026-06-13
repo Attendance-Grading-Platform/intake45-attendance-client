@@ -19,10 +19,21 @@ export interface GradeDistribution {
   Fail: number
 }
 
+export interface NextSessionItem {
+  id: number
+  session_date: string
+  start_time: string
+  end_time: string
+  engagement: {
+    type: string
+  }
+}
+
 export interface InstructorDashboardPayload {
   delivered_hours: number
   lab_groups: LabGroupItem[]
   grade_distribution: GradeDistribution
+  next_session?: NextSessionItem
 }
 
 export const getInstructorDashboard = () =>
