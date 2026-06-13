@@ -135,7 +135,7 @@
           
           <div v-if="selectedRequest.attachment_path">
             <h3 class="text-label text-neutral-500 mb-2">ATTACHMENT</h3>
-            <a :href="getAttachmentUrl(selectedRequest.attachment_path)" target="_blank" class="inline-flex items-center gap-2 text-brand-red hover:underline border border-brand-red px-4 py-2 rounded">
+            <a :href="getAttachmentUrl(selectedRequest.id)" target="_blank" class="inline-flex items-center gap-2 text-brand-red hover:underline border border-brand-red px-4 py-2 rounded">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Download / View File
             </a>
@@ -157,7 +157,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getExcuses, approveExcuse, rejectExcuse, type ExcuseRequest } from '@/api/modules/excuse.api'
+import { approveExcuse, rejectExcuse, type ExcuseRequest } from '@/api/modules/excuse.api'
+import api from '@/api/axios'
+
+/** Fetch all excuses via the admin-scoped GET /v1/excuses endpoint (not /me/excuses) */
+const fetchAllExcuses = () => api.get('/v1/excuses')
 
 const requests = ref<ExcuseRequest[]>([])
 const isLoading = ref(false)
@@ -199,9 +203,9 @@ const selectedRequest = ref<ExcuseRequest | null>(null)
 const loadExcuses = async () => {
   isLoading.value = true
   try {
-    const res = await getExcuses()
+    const res = await fetchAllExcuses()
     // Sort so requested are at top
-    requests.value = res.data.data.sort((a, b) => {
+    requests.value = (res.data.data ?? []).sort((a: ExcuseRequest, b: ExcuseRequest) => {
         if (a.status === 'requested' && b.status !== 'requested') return -1
         if (b.status === 'requested' && a.status !== 'requested') return 1
         return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
@@ -251,11 +255,19 @@ const closeModal = () => {
   selectedRequest.value = null
 }
 
-const getAttachmentUrl = (path: string) => {
-  const baseUrl = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:8000'
-  return `${baseUrl}/storage/${path}`
+/**
+ * Builds a URL that streams the file via GET /v1/excuses/{id}/attachment
+ * (admin-side route — auth-protected, works for track_admin & branch_manager).
+ */
+const getAttachmentUrl = (excuseId: number) => {
+  const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  let base = rawBase
+  try {
+    const u = new URL(rawBase)
+    base = `${u.origin}${u.pathname.replace(/\/$/, '')}`
+  } catch { /* keep rawBase */ }
+  if (!base.includes('/api')) base = base.replace(/\/$/, '') + '/api/v1'
+  return `${base}/excuses/${excuseId}/attachment`
 }
 
 const handleApprove = async () => {
