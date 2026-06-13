@@ -183,7 +183,7 @@ const pendingDeliverables = computed(() => {
 })
 
 const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return 'OCT 12'
+    if (!dateStr) return 'TBD'
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 }
