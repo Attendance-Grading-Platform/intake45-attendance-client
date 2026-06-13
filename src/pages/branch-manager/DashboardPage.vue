@@ -104,8 +104,8 @@ async function loadBranchMetrics() {
     }
   } catch {
     metrics.value = MOCK_BRANCH_METRICS
-    billingCohortId.value = MOCK_BRANCH_METRICS.cohorts[0]?.cohort_id ?? 0
-    loadBilling(MOCK_BRANCH_METRICS.cohorts[0]?.cohort_id ?? 0)
+    billingCohortId.value = MOCK_BRANCH_METRICS.cohorts[0].cohort_id
+    loadBilling(MOCK_BRANCH_METRICS.cohorts[0].cohort_id)
   } finally {
     metricsLoading.value = false
   }
@@ -241,7 +241,7 @@ onMounted(() => { loadBranchMetrics() })
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div 
-            v-for="student in (atRiskStudents as any[])" 
+            v-for="student in atRiskStudents" 
             :key="student.student_id" 
             class="bg-white border border-rose-200 shadow-sm rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
           >
@@ -286,7 +286,7 @@ onMounted(() => { loadBranchMetrics() })
           </thead>
           <tbody>
             <tr 
-              v-for="student in (cohortStore.students as any[])" 
+              v-for="student in cohortStore.students" 
               :key="student.id"
               class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors"
             >

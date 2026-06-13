@@ -54,8 +54,8 @@ onMounted(async () => {
       interface MappedSession { session_date?: string; start_time?: string; end_time?: string; type?: string; cohort_name?: string }
       const allSessions: MappedSession[] = []
 
-      engagements.forEach((eng: any) => {
-        (eng.sessions ?? []).forEach((sess: any) => {
+      engagements.forEach((eng: EngagementApi) => {
+        (eng.sessions ?? []).forEach((sess) => {
           allSessions.push({
             ...sess,
             type: eng.type,
@@ -68,19 +68,15 @@ onMounted(async () => {
 
       // Sort chronological
       allSessions.sort((a, b) => {
-        const dateA = a.session_date || '';
-        const dateB = b.session_date || '';
-        const dateAStr = dateA.split('T')[0] || '';
-        const dateBStr = dateB.split('T')[0] || '';
-        if (dateAStr !== dateBStr) return dateAStr.localeCompare(dateBStr);
-        const timeA = a.start_time || '';
-        const timeB = b.start_time || '';
-        return timeA.localeCompare(timeB);
+        const dateA = a.session_date.split('T')[0]
+        const dateB = b.session_date.split('T')[0]
+        if (dateA !== dateB) return dateA.localeCompare(dateB)
+        return a.start_time.localeCompare(b.start_time)
       })
 
       // Separate into Upcoming and Past
-      allSessions.forEach((sess: any) => {
-        const sessDate = sess.session_date?.split('T')[0] || ''
+      allSessions.forEach(sess => {
+        const sessDate = sess.session_date.split('T')[0] || ''
         const sessEndTime = sess.end_time || '23:59:59'
         
         // It's past if the date is before today, OR if it's today but the end_time has passed

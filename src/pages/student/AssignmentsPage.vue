@@ -277,6 +277,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import api from '@/api/axios';
+// @ts-expect-error
 import AssignmentSubmission from '@/components/student/AssignmentSubmission.vue';
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue';
 
@@ -323,7 +324,7 @@ const fetchAssignments = async () => {
 
     const now = new Date();
 
-    (assignments as any[]).forEach((task: any) => {
+    (assignments as ApiTask[]).forEach((task) => {
       const dueDate = task.due_date ? new Date(task.due_date) : null;
       
       const formattedDate = dueDate 
@@ -379,13 +380,11 @@ const handleSubmission = async (formData: FormData) => {
       const index = sourceArray.findIndex(t => t.id === submittingTaskId.value);
       if (index !== -1) {
         const task = sourceArray.splice(index, 1)[0];
-        if (task) {
-          task.status = 'submitted';
-          const fileEntry = formData.get('file') as File | null;
-          task.submittedFile = fileEntry ? fileEntry.name : (formData.get('url') as string);
-          completedTasks.value.push(task);
-          return true;
-        }
+        task.status = 'submitted';
+        const fileEntry = formData.get('file') as File | null;
+        task.submittedFile = fileEntry ? fileEntry.name : (formData.get('url') as string);
+        completedTasks.value.push(task);
+        return true;
       }
       return false;
     };

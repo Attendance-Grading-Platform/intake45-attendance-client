@@ -68,7 +68,7 @@ onMounted(async () => {
     <!-- State: Data Grid -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div 
-        v-for="student in (atRiskStudents as any[])" 
+        v-for="student in atRiskStudents" 
         :key="student.student_id" 
         class="bg-white border border-rose-200 shadow-sm rounded-xl p-6 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden"
       >

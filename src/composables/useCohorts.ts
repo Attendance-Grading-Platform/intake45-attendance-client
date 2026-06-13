@@ -79,10 +79,7 @@ export function useCohorts() {
                 if (message.toLowerCase().includes('active cohort')) {
                     formError.value = 'This track already has an active cohort. You must close the existing cohort before creating a new one.'
                 } else {
-                    const errs = e.response.data?.errors ?? {}
-                    const mapped: Record<string, string> = {}
-                    for (const k in errs) mapped[k] = errs[k][0]
-                    fieldErrors.value = mapped
+                   const fieldErrors = ref<Record<string, string>>({})
                 }
             } else if (e.response?.status === 403) {
                 formError.value = 'Only Branch Managers can create cohorts.'

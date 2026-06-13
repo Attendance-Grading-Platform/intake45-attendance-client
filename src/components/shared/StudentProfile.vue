@@ -221,7 +221,7 @@ const groupedGrades = computed(() => {
             </summary>
             <div class="p-4 bg-[#FAFAFA] space-y-3">
               <div 
-                v-for="(grade, idx) in (grades as any[])" 
+                v-for="(grade, idx) in grades" 
                 :key="idx"
                 class="flex justify-between items-center border-b border-[#E0D4B8] last:border-0 pb-3 last:pb-0"
               >

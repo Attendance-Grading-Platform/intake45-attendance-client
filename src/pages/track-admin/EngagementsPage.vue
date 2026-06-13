@@ -191,7 +191,7 @@ function getBadgeStyle(type: string) {
             <button @click="prevWeek" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md shadow-sm transition-colors flex items-center justify-center" aria-label="Previous Week">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
-            <span class="font-bold text-slate-800 min-w-[140px] text-center">{{ formatMonthYear(currentWeekStart) }}</span>
+            <span class="font-bold text-slate-800 min-w-35 text-center">{{ formatMonthYear(currentWeekStart) }}</span>
             <button @click="nextWeek" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md shadow-sm transition-colors flex items-center justify-center" aria-label="Next Week">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
@@ -206,7 +206,7 @@ function getBadgeStyle(type: string) {
         <div class="w-8 h-8 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
       </div>
 
-      <div class="flex-1 bg-white rounded-lg border border-slate-200 flex overflow-x-auto min-h-[600px]" v-else>
+      <div class="flex-1 bg-white rounded-lg border border-slate-200 flex overflow-x-auto min-h-150" v-else>
 
         <div class="w-16 lg:w-20 shrink-0 border-r border-slate-200 flex flex-col relative" style="min-height: 800px;">
           <div class="h-16 lg:h-20 border-b border-slate-200 bg-slate-50 sticky top-0 z-20"></div>
@@ -222,7 +222,7 @@ function getBadgeStyle(type: string) {
           </div>
         </div>
 
-        <div class="flex-1 min-w-[600px] grid grid-cols-7 relative">
+        <div class="flex-1 min-w-150 grid grid-cols-7 relative">
           <div
             v-for="day in weekDays"
             :key="day.toISOString()"
@@ -286,7 +286,7 @@ function getBadgeStyle(type: string) {
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6" v-else>
         <div v-for="session in upcomingSessions" :key="`upcoming-${session.id}`" class="flex gap-4 border border-slate-100 rounded-lg p-4 bg-slate-50 hover:shadow-md transition-shadow">
-          <div class="flex flex-col items-center justify-center bg-slate-50 rounded px-3 py-2 min-w-[60px] border border-slate-100">
+          <div class="flex flex-col items-center justify-center bg-slate-50 rounded px-3 py-2 min-w-15 border border-slate-100">
             <span class="text-xl font-bold text-slate-700">{{ session?.session_date ? new Date(session.session_date).getDate() : '' }}</span>
             <span class="text-xs font-medium text-slate-500 uppercase">{{ session?.session_date ? new Date(session.session_date).toLocaleDateString('en-US', { month: 'short' }) : '' }}</span>
           </div>

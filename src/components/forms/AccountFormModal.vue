@@ -6,7 +6,7 @@
  * A highly reusable, dynamic modal for provisioning new users or editing
  * existing ones. It strictly enforces the "Top-Down Provisioning" (SEC-1)
  * business logic, ensuring that specific roles are assigned the correct
- * relational data (e.g., Students must have a Cohort, Instructors must 
+ * relational data (e.g., Students must have a Cohort, Instructors must
  * have compensation details).
  */
 
@@ -25,8 +25,8 @@ interface EditableUser {
     compensation_type?: string
     hourly_rate?: string | number
     fixed_salary?: string | number
-    enrolled_cohorts?: any[]
-    administered_cohorts?: any[]
+    enrolled_cohorts?: Array<{ id: string | number }>
+    administered_cohorts?: Array<{ id: string | number }>
 }
 
 // --- Props & Emits ---
@@ -38,7 +38,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: 'close'): void
-    (e: 'success', message: string): void // Passes success message to parent toast
+    (e: 'success', message: string): void
 }>()
 
 // --- Local State ---
@@ -69,75 +69,56 @@ const compensationOptions = [
 
 // --- Computed Properties ---
 
-// Determine context (Create vs Update) based on the presence of editUser prop
 const isEditing = computed(() => !!props.editUser)
 const modalTitle = computed(() => isEditing.value ? 'Edit Account' : 'Provision Account')
 const submitLabel = computed(() => isEditing.value ? 'Save Changes' : 'Provision Account')
 
-/**
- * Basic Frontend Validation
- * Validates the base fields, then applies conditional logic based on the 
- * selected 'System Role'. Prevents the user from submitting a structurally invalid payload.
- */
 const isFormValid = computed(() => {
-    // 1. Base requirements
     if (!formData.value.name || !formData.value.email || !formData.value.role || !formData.value.expiry_date) return false
-    
-    // 2. Password is required ONLY when creating a new user
+
     if (!isEditing.value && !formData.value.password) return false
-    
-    // 3. Students and Track Admins MUST be assigned to a cohort
+
     if (['student', 'track_admin'].includes(formData.value.role) && !formData.value.cohort_id) return false
-    
-    // 4. Instructors MUST have compensation details filled out
+
     if (formData.value.role === 'instructor') {
         if (!formData.value.compensation_type) return false
         if (formData.value.compensation_type === 'external' && !formData.value.hourly_rate) return false
         if (formData.value.compensation_type === 'internal' && !formData.value.fixed_salary) return false
     }
-    
+
     return true
 })
 
 // --- Lifecycle Watcher ---
 
-/**
- * Automatically populate the form data whenever the modal opens.
- * This handles both resetting the form for a new user, and parsing 
- * existing relationship data for an edit.
- */
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {
-        formErrors.value = {} // Clear old validation errors
+        formErrors.value = {}
 
         if (props.editUser) {
             const user = props.editUser
 
-            // Format timestamp into HTML-friendly YYYY-MM-DD
             const formattedExpiry = user.expiry_date ? user.expiry_date.split('T')[0] : ''
-            
-            // Extract cohort ID from eager-loaded relationships
-            let currentCohortId = ''
+
+          let currentCohortId: string | number = ''
             if (user.role === 'student' && user.enrolled_cohorts?.length) {
-                currentCohortId = user.enrolled_cohorts[0].id
+                currentCohortId = user.enrolled_cohorts?.[0]?.id ?? ''
             } else if (user.role === 'track_admin' && user.administered_cohorts?.length) {
-                currentCohortId = user.administered_cohorts[0].id
+                currentCohortId = user.administered_cohorts?.[0]?.id ?? ''
             }
 
-            // Hydrate the form
             formData.value = {
-                name: user.name ?? '', 
-                email: user.email ?? '', 
-                password: '', // Kept blank intentionally. Only update if user types here.
+                name: user.name ?? '',
+                email: user.email ?? '',
+                password: '',
                 role: user.role ?? '',
-                expiry_date: formattedExpiry ?? '', 
-                cohort_id: currentCohortId,
-                compensation_type: (user.compensation_type || '') as string,
-                hourly_rate: (user.hourly_rate || '') as string, 
-                fixed_salary: (user.fixed_salary || '') as string
+               expiry_date: formattedExpiry ?? '',
+                cohort_id: String(currentCohortId),
+                compensation_type: user.compensation_type || '',
+                hourly_rate: user.hourly_rate !== undefined && user.hourly_rate !== null ? String(user.hourly_rate) : '',
+                fixed_salary: user.fixed_salary !== undefined && user.fixed_salary !== null ? String(user.fixed_salary) : ''
             }
         } else {
-            // Reset to empty state for Provisioning
             formData.value = { ...defaultForm }
         }
     }
@@ -150,51 +131,42 @@ function handleClose() {
     emit('close')
 }
 
-/**
- * Validates, constructs, and transmits the payload to Laravel.
- * Handles both POST (Create) and PUT (Update) methods based on state.
- */
 async function handleSave() {
     if (!isFormValid.value || isSaving.value) return
-    
+
     isSaving.value = true
-    formErrors.value = {} // Clear previous errors
+    formErrors.value = {}
 
     try {
-        // 1. Construct strict payload
         const payload: Record<string, unknown> = {
-            name: formData.value.name, 
+            name: formData.value.name,
             email: formData.value.email,
-            role: formData.value.role, 
+            role: formData.value.role,
             expiry_date: formData.value.expiry_date,
         }
 
-        // Only attach password if one was explicitly provided
         if (formData.value.password) {
             payload.password = formData.value.password
         }
 
-        // Attach dynamic cohort data
-        if (['student', 'track_admin'].includes(payload.role as string)) {
+        if (['student', 'track_admin'].includes(String(payload.role))) {
             payload.cohort_id = formData.value.cohort_id
         }
 
-        // Attach dynamic compensation data
         if (payload.role === 'instructor') {
             payload.compensation_type = formData.value.compensation_type
             if (payload.compensation_type === 'external') payload.hourly_rate = formData.value.hourly_rate
             if (payload.compensation_type === 'internal') payload.fixed_salary = formData.value.fixed_salary
         }
 
-        // 2. Transmit to backend
-        if (isEditing.value) {
-            await api.put(`/v1/auth/users/${props.editUser?.id}`, payload)
+        if (isEditing.value && props.editUser) {
+            await api.put(`/v1/auth/users/${props.editUser.id}`, payload)
             emit('success', 'User updated successfully!')
         } else {
             await api.post('/v1/auth/users', payload)
             emit('success', 'User provisioned successfully!')
         }
-        
+
     } catch (error) {
         console.error('Save operation failed:', error)
         const e = error as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -220,7 +192,7 @@ async function handleSave() {
         <Transition name="overlay">
             <div v-if="isOpen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" @click.self="handleClose">
                 <div class="w-full max-w-lg bg-white rounded-card border border-neutral-300 p-6 max-h-[90vh] overflow-y-auto shadow-xl" role="dialog">
-                    
+
                     <h2 class="font-serif text-[22px] text-neutral-800 mb-1">{{ modalTitle }}</h2>
                     <p class="font-sans text-sm text-neutral-600 mb-6">Manage user details and system access.</p>
 
@@ -233,53 +205,53 @@ async function handleSave() {
                             <TextInput v-model="formData.name" label="Full Name" :error="formErrors.name" required />
                             <TextInput v-model="formData.email" type="email" label="Email Address" :error="formErrors.email" required />
                         </div>
-                        
+
                         <div class="grid grid-cols-2 gap-4">
-                            <TextInput 
-                                v-model="formData.password" 
-                                type="password" 
-                                :label="isEditing ? 'New Password (Optional)' : 'Temporary Password'" 
-                                :error="formErrors.password" 
-                                :required="!isEditing" 
+                            <TextInput
+                                v-model="formData.password"
+                                type="password"
+                                :label="isEditing ? 'New Password (Optional)' : 'Temporary Password'"
+                                :error="formErrors.password"
+                                :required="!isEditing"
                             />
-                            <TextInput 
-                                v-model="formData.expiry_date" 
-                                type="date" 
-                                label="Account Expiry Date" 
-                                :error="formErrors.expiry_date" 
-                                required 
+                            <TextInput
+                                v-model="formData.expiry_date"
+                                type="date"
+                                label="Account Expiry Date"
+                                :error="formErrors.expiry_date"
+                                required
                             />
                         </div>
-                        
-                        <SelectInput 
-                            v-model="formData.role" 
-                            label="System Role" 
-                            :options="roleOptions" 
-                            :error="formErrors.role" 
-                            required 
+
+                        <SelectInput
+                            v-model="formData.role"
+                            label="System Role"
+                            :options="roleOptions"
+                            :error="formErrors.role"
+                            required
                         />
 
                         <hr class="border-neutral-100 my-2" v-if="formData.role" />
 
                         <div v-if="['student', 'track_admin'].includes(formData.role)">
-                            <SelectInput 
-                                v-model="formData.cohort_id" 
-                                label="Assign to Cohort" 
-                                :options="cohorts" 
-                                :error="formErrors.cohort_id" 
-                                required 
+                            <SelectInput
+                                v-model="formData.cohort_id"
+                                label="Assign to Cohort"
+                                :options="cohorts"
+                                :error="formErrors.cohort_id"
+                                required
                             />
                         </div>
 
                         <div v-if="formData.role === 'instructor'" class="space-y-4">
-                            <SelectInput 
-                                v-model="formData.compensation_type" 
-                                label="Compensation Type" 
-                                :options="compensationOptions" 
-                                :error="formErrors.compensation_type" 
-                                required 
+                            <SelectInput
+                                v-model="formData.compensation_type"
+                                label="Compensation Type"
+                                :options="compensationOptions"
+                                :error="formErrors.compensation_type"
+                                required
                             />
-                            
+
                             <div v-if="formData.compensation_type === 'external'">
                                 <TextInput v-model="formData.hourly_rate" type="number" label="Hourly Rate (EGP)" :error="formErrors.hourly_rate" required />
                             </div>

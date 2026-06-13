@@ -465,7 +465,7 @@ const openInstructorDetail = (instructor: BillingEntry) => {
                 ({{ selectedInstructor.delivered_hours }} hrs × {{ selectedInstructor.hourly_rate }} EGP/h) = 
                 <b>{{ formatCurrency(selectedInstructor.total_amount) }}</b>
               </template>
-              <template v-else-if="selectedInstructor">
+              <template v-else>
                 {{ selectedInstructor.delivered_hours }} hrs × {{ selectedInstructor.hourly_rate }} EGP/h = 
                 <b>{{ formatCurrency(selectedInstructor.total_amount) }}</b>
               </template>

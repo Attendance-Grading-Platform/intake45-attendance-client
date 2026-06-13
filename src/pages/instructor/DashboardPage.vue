@@ -50,7 +50,7 @@ const activeCohortName = computed(() => {
           </thead>
           <tbody>
             <tr 
-              v-for="student in (cohortStore.students as any[])" 
+              v-for="student in cohortStore.students" 
               :key="student.id"
               class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors"
             >
