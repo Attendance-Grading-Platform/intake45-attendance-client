@@ -3,10 +3,12 @@ import { ref } from "vue";
 import { useCohortStore } from "@/stores/cohort.store";
 import SubmitButton from "@/components/forms/SubmitButton.vue";
 import axios from "@/api/axios"; // Added the Axios import
+import { PREDEFINED_TAGS } from "@/constants/tags";
 
 const cohortStore = useCohortStore();
 const activeTab = ref<"overview" | "attendance" | "grades">("overview");
 const newNoteText = ref("");
+const selectedTag = ref<string>("");
 const isSubmittingNote = ref(false);
 
 const formatDate = (isoString: string) => {
@@ -23,13 +25,15 @@ const submitNote = async () => {
   isSubmittingNote.value = true;
 
   try {
+    const payload: Record<string, any> = { note: newNoteText.value };
+    if (selectedTag.value) payload.tag = selectedTag.value;
+
     // 1. Send the POST request to the existing team endpoint
-    await axios.post(`/v1/students/${cohortStore.activeStudentId}/notes`, {
-      note: newNoteText.value,
-    });
+    await axios.post(`/v1/students/${cohortStore.activeStudentId}/notes`, payload);
 
     // 2. Clear the textarea upon success
     newNoteText.value = "";
+    selectedTag.value = "";
 
     // 3. Re-fetch the notes to instantly update the UI feed
     const notesRes = await axios.get(`/v1/students/${cohortStore.activeStudentId}/notes`);
@@ -138,7 +142,15 @@ const groupedGrades = computed(() => {
                 class="bg-[#FFFFFF] p-4 rounded-[6px] border border-[#E0D4B8]"
               >
                 <div class="flex justify-between items-start mb-2">
-                  <span class="font-sans text-[13px] font-medium text-[#000000]">{{ item.creator?.name || 'Instructor' }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-sans text-[13px] font-medium text-[#000000]">{{ item.creator?.name || 'Instructor' }}</span>
+                    <span 
+                      v-if="item.tag && item.tag !== 'note'" 
+                      class="bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A] text-[10px] font-medium rounded-[4px] px-2 py-[2px] uppercase tracking-wider"
+                    >
+                      {{ item.tag }}
+                    </span>
+                  </div>
                   <span class="font-sans text-[11px] text-[#888888]">{{ formatDate(item.created_at) }}</span>
                 </div>
                 <p class="font-sans text-[14px] text-[#444444] whitespace-pre-wrap">{{ item.note }}</p>
@@ -150,6 +162,18 @@ const groupedGrades = computed(() => {
 
             <!-- Add Note -->
             <form @submit.prevent="submitNote" class="mt-6">
+              <div class="mb-3 flex flex-wrap gap-2">
+                <button 
+                  v-for="tag in PREDEFINED_TAGS" 
+                  :key="tag"
+                  type="button"
+                  @click="selectedTag = selectedTag === tag ? '' : tag"
+                  :class="selectedTag === tag ? 'bg-[#8B1A1A] text-[#FFFFFF] border-[#8B1A1A] font-medium' : 'bg-[#FAFAFA] text-[#666666] border border-[#E0D4B8] hover:border-[#8B1A1A] hover:text-[#8B1A1A]'"
+                  class="rounded-full px-3 py-1.5 text-[12px] font-sans transition-all border"
+                >
+                  {{ tag }}
+                </button>
+              </div>
               <textarea 
                 v-model="newNoteText"
                 rows="3"
