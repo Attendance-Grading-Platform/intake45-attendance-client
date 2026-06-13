@@ -2,9 +2,9 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Grade } from '@/api/modules/grade.api'
 import * as gradeApi from '@/api/modules/grade.api'
-import axios from 'axios'
+import api from '@/api/axios'
 
-// Shape returned by GET /api/v1/grades
+// Shape returned by GET /v1/grades
 export interface GradeEntry {
   student_id: number
   course_component_id: number
@@ -17,7 +17,7 @@ export interface GradeEntry {
   normalized_score?: number | null
 }
 
-// Shape for PATCH /api/v1/grades/{id}/override
+// Shape for PATCH /v1/grades/{id}/override
 export interface OverridePayload {
   new_score: number
   note: string
@@ -43,7 +43,7 @@ export const useGradeStore = defineStore('grade', () => {
 
   // ── Instructor: bulk submit scores ────────────────────
   // scores: Record<"studentId_componentId", number | null>
-  // Calls POST /api/v1/grades for each non-null cell
+  // Calls POST /v1/grades for each non-null cell
   async function submitGrades(
     scores: Record<string, number | null>,
     rawMax: Record<string, number>  // componentId (as string key) → raw_max
@@ -59,7 +59,7 @@ export const useGradeStore = defineStore('grade', () => {
     for (const [key, raw_score] of entries) {
       const [studentId, componentId] = key.split('_').map(Number)
       try {
-        await axios.post('/api/v1/grades', {
+        await api.post('/v1/grades', {
           student_id:          studentId,
           course_component_id: componentId,
           raw_score,
@@ -82,7 +82,7 @@ export const useGradeStore = defineStore('grade', () => {
   }
 
   // ── Track Admin: override a single grade ──────────────
-  // Calls PATCH /api/v1/grades/{gradeId}/override
+  // Calls PATCH /v1/grades/{gradeId}/override
   // Requires: new_score (number), note (string, min 5 chars)
   // Backend saves original_value before overwriting raw_score
   async function overrideGrade(
@@ -97,7 +97,7 @@ export const useGradeStore = defineStore('grade', () => {
     }
 
     try {
-      await axios.patch(`/api/v1/grades/${gradeId}/override`, {
+      await api.patch(`/v1/grades/${gradeId}/override`, {
         new_score: payload.new_score,
         note:      payload.note.trim(),
       })
@@ -113,11 +113,11 @@ export const useGradeStore = defineStore('grade', () => {
   }
 
   // ── Track Admin: fetch grades for a specific cohort ───
-  // GET /api/v1/cohorts/{cohortId}/grades
+  // GET /v1/cohorts/{cohortId}/grades
   async function fetchCohortGrades(cohortId: number): Promise<GradeEntry[]> {
     isLoading.value = true
     try {
-      const res = await axios.get(`/api/v1/cohorts/${cohortId}/grades`)
+      const res = await api.get(`/v1/cohorts/${cohortId}/grades`)
       return res.data.data ?? []
     } finally {
       isLoading.value = false
