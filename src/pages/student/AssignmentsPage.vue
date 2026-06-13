@@ -277,7 +277,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import api from '@/api/axios';
-// @ts-expect-error
 import AssignmentSubmission from '@/components/student/AssignmentSubmission.vue';
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue';
 
@@ -331,8 +330,8 @@ const fetchAssignments = async () => {
           ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(dueDate)
           : 'No due date';
 
-      const mappedTask = {
-        id: task.id || task.course_component_id,
+      const mappedTask: MappedTask = {
+        id: task.id ?? task.course_component_id ?? 0,
         course: task.course?.name || task.course_name || 'UNKNOWN COURSE',
         title: task.title || task.name || 'Assignment',
         dueDate: formattedDate,
@@ -340,9 +339,9 @@ const fetchAssignments = async () => {
         rawDueDate: dueDate,
         maxPoints: task.maxPoints || task.raw_max || 100,
         daysLate: dueDate ? Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))) : 0,
-        status: task.status,
-        grade: task.grade || task.raw_score,
-        feedback: task.feedback,
+        status: task.status ?? 'pending',
+        grade: task.grade ?? task.raw_score ?? null,
+        feedback: task.feedback ?? null,
         submittedFile: task.submitted_file || task.submission_url || 'Submission',
       };
 
@@ -379,7 +378,7 @@ const handleSubmission = async (formData: FormData) => {
     const moveTask = (sourceArray: MappedTask[]) => {
       const index = sourceArray.findIndex(t => t.id === submittingTaskId.value);
       if (index !== -1) {
-        const task = sourceArray.splice(index, 1)[0];
+        const task = sourceArray.splice(index, 1)[0]!;
         task.status = 'submitted';
         const fileEntry = formData.get('file') as File | null;
         task.submittedFile = fileEntry ? fileEntry.name : (formData.get('url') as string);

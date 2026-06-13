@@ -18,7 +18,7 @@ const lab = ref<ComponentFormState>({ included: true, weight: 0, due_date: null 
 const exam = ref<ComponentFormState>({ included: true, weight: 0, due_date: null })
 
 // Get today's date in YYYY-MM-DD format for baseline comparison
-const todayISO = new Date().toISOString().split('T')[0]
+const todayISO = new Date().toISOString().split('T')[0] || ''
 
 function initFromCourse(course: Course) {
     const labComp = course.components.find(c => c.type === 'lab_deliverable')

@@ -19,9 +19,11 @@ const isLoading = ref(true)
 // Scanner State
 const activeSessionId = ref<number | null>(null)
 
+interface MappedSession { id?: number; session_date: string; start_time: string; end_time: string; type: string; cohort_name: string }
+
 // Upcoming & History State
-const upcomingSessions = ref<unknown[]>([])
-const pastSessions = ref<unknown[]>([])
+const upcomingSessions = ref<MappedSession[]>([])
+const pastSessions = ref<MappedSession[]>([])
 
 const hasNoSessions = computed(() =>
   !isLoading.value &&
@@ -50,15 +52,16 @@ onMounted(async () => {
       const todayISO = now.toISOString().split('T')[0]
       const currentTime = now.toTimeString().split(' ')[0] // H:i:s
 
-      interface EngagementApi { type?: string; cohorts?: Array<{ name?: string }>; daily_start_time?: string; daily_end_time?: string; sessions?: Array<{ session_date?: string; start_time?: string; end_time?: string }> }
-      interface MappedSession { session_date?: string; start_time?: string; end_time?: string; type?: string; cohort_name?: string }
+      interface EngagementApi { type?: string; cohorts?: Array<{ name?: string }>; daily_start_time?: string; daily_end_time?: string; sessions?: Array<{ id?: number; session_date?: string; start_time?: string; end_time?: string }> }
       const allSessions: MappedSession[] = []
 
       engagements.forEach((eng: EngagementApi) => {
         (eng.sessions ?? []).forEach((sess) => {
           allSessions.push({
             ...sess,
-            type: eng.type,
+            id: sess.id,
+            session_date: sess.session_date ?? '',
+            type: eng.type ?? 'lecture',
             cohort_name: eng.cohorts?.[0]?.name || 'Unknown Cohort',
             start_time: sess.start_time || eng.daily_start_time || '09:00:00',
             end_time: sess.end_time || eng.daily_end_time || '12:00:00'
@@ -68,8 +71,8 @@ onMounted(async () => {
 
       // Sort chronological
       allSessions.sort((a, b) => {
-        const dateA = a.session_date.split('T')[0]
-        const dateB = b.session_date.split('T')[0]
+        const dateA = a.session_date.split('T')[0] || ''
+        const dateB = b.session_date.split('T')[0] || ''
         if (dateA !== dateB) return dateA.localeCompare(dateB)
         return a.start_time.localeCompare(b.start_time)
       })
@@ -231,18 +234,18 @@ function formatTime(t: string) {
           <div v-else class="p-6">
             <div class="flex items-center gap-2 mb-4">
               <span class="px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-md bg-indigo-100 text-indigo-700">
-                {{ upcomingSessions[0].type.replace('_', ' ') }}
+                {{ upcomingSessions[0]?.type.replace('_', ' ') }}
               </span>
             </div>
             
-            <h3 class="text-xl font-bold text-slate-800 mb-4">{{ upcomingSessions[0].cohort_name }}</h3>
+            <h3 class="text-xl font-bold text-slate-800 mb-4">{{ upcomingSessions[0]?.cohort_name }}</h3>
             
             <div class="space-y-4">
               <div class="flex items-start gap-3">
                 <svg class="w-5 h-5 text-slate-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 <div>
-                  <div class="text-sm font-medium text-slate-800">{{ formatFriendlyDate(upcomingSessions[0].session_date) }}</div>
-                  <div class="text-xs text-slate-500 mt-0.5">{{ formatTime(upcomingSessions[0].start_time) }} - {{ formatTime(upcomingSessions[0].end_time) }}</div>
+                  <div class="text-sm font-medium text-slate-800">{{ upcomingSessions[0]?.session_date ? formatFriendlyDate(upcomingSessions[0].session_date) : '' }}</div>
+                  <div class="text-xs text-slate-500 mt-0.5">{{ upcomingSessions[0]?.start_time ? formatTime(upcomingSessions[0].start_time) : '' }} - {{ upcomingSessions[0]?.end_time ? formatTime(upcomingSessions[0].end_time) : '' }}</div>
                 </div>
               </div>
             </div>

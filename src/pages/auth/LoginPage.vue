@@ -80,7 +80,7 @@ const handleLogin = async () => {
     } else if (status === 429) {
       errorState.value = 'rate-limited';
       serverError.value = "Too many login attempts. Please try again in a few minutes.";
-    } else if (!error.response) {
+    } else if (!e.response) {
       errorState.value = 'connection';
       serverError.value = "Unable to connect to the server. Please check your internet.";
     } else {

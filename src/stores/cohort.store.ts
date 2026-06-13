@@ -49,10 +49,20 @@ export interface AttendanceRecord {
   };
 }
 
+export interface CohortStudent {
+    id: number
+    name: string
+    email: string
+    is_active?: boolean
+    lab_group_name?: string
+    enrolled_lab_groups?: { id: number; name: string }[]
+    tags?: { id: number; tag: string }[]
+}
+
 export const useCohortStore = defineStore('cohort', () => {
     // 1. New Cohort List State
     const cohorts = ref<Cohort[]>([])
-    const students = ref<unknown[]>([])
+    const students = ref<CohortStudent[]>([])
     const isLoading = ref(false)
 
     // 2. Drawer UI State
@@ -87,7 +97,7 @@ export const useCohortStore = defineStore('cohort', () => {
         isLoading.value = true
         try {
             const res = await cohortApi.getCohortStudents(cohortId)
-            students.value = res.data.data ?? []
+            students.value = (res.data.data ?? []) as CohortStudent[]
         } catch {
             students.value = []
         } finally {

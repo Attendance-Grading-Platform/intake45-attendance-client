@@ -24,7 +24,7 @@ const exam = ref<ComponentFormState>({ included: true, weight: 50, due_date: nul
 const weightsFormRef = ref<InstanceType<typeof ConfigureWeightsForm> | null>(null)
 
 // Get today's date in YYYY-MM-DD format to prevent past-date scheduling
-const todayISO = new Date().toISOString().split('T')[0]
+const todayISO = new Date().toISOString().split('T')[0] || ''
 
 // --- Computed Validations ---
 

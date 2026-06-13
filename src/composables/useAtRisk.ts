@@ -8,10 +8,20 @@ interface CohortSummary {
     cohort_name: string
 }
 
+export interface AtRiskStudent {
+    student_id: number
+    name: string
+    email?: string
+    ledger_balance: number
+    gpa: number
+    is_at_risk: boolean
+    lab_group_name?: string
+}
+
 export function useAtRisk() {
     const cohorts = ref<CohortSummary[]>([])
     const selectedCohortId = ref<number | null>(null)
-    const atRiskStudents = ref<unknown[]>([])
+    const atRiskStudents = ref<AtRiskStudent[]>([])
     const isLoading = ref(false)
     const errorMsg = ref<string | null>(null)
 
@@ -60,7 +70,7 @@ export function useAtRisk() {
 
         try {
             const res = await getAtRiskStudents(cohortId)
-            const data = res.data.data as { at_risk_students?: unknown[] } | null
+            const data = res.data.data as { at_risk_students?: AtRiskStudent[] } | null
             atRiskStudents.value = data?.at_risk_students ?? []
         } catch (err) {
             errorMsg.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to fetch at-risk students'

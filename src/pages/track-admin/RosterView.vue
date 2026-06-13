@@ -381,7 +381,7 @@ const studentDataRows = computed(() => {
     // extract lab group name
     let labGroup = ''
     if (student.enrolled_lab_groups && student.enrolled_lab_groups.length > 0) {
-      labGroup = student.enrolled_lab_groups[0].name || ''
+      labGroup = student.enrolled_lab_groups[0]?.name || ''
     }
 
     return {
