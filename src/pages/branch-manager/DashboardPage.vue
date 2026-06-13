@@ -22,7 +22,7 @@ onMounted(async () => {
 const activeCohortName = computed(() => {
   return cohortStore.cohorts[0]?.name ?? 'No Active Cohorts';
 });
-
+ feature/billing-and-grades-haneen
 // ── Branch-level metrics and billing (layered additions) ──
 
 const MOCK_BRANCH_METRICS = {
@@ -161,6 +161,11 @@ function exportBillingCsv() {
 }
 
 onMounted(() => { loadBranchMetrics() })
+
+const activeAtRiskCohortName = computed(() => {
+  return cohorts.value.find((c: any) => c.cohort_id === selectedCohortId.value)?.cohort_name ?? 'Unknown Cohort';
+});
+release
 </script>
 
 <template>
@@ -256,8 +261,9 @@ onMounted(() => { loadBranchMetrics() })
               </div>
             </div>
             <button 
-              @click="cohortStore.openStudentProfile(student.student_id, student.name, 'At-Risk View', 'General')"
-              class="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-md"
+              @click.stop.prevent="cohortStore.openStudentProfile(student.student_id, student.name, activeAtRiskCohortName, student.lab_group_name ?? 'Unassigned')"
+              class="text-[12px] font-medium text-[#8B1A1A] underline-offset-2 hover:underline focus:outline-none relative z-50 cursor-pointer text-left w-max"
+              :aria-label="`View profile for ${student.name}`"
             >
               View
             </button>
@@ -288,14 +294,20 @@ onMounted(() => { loadBranchMetrics() })
             <tr 
               v-for="student in cohortStore.students" 
               :key="student.id"
-              class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors"
+              class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors group"
             >
               <td class="py-4 px-4 font-sans text-[14px] text-[#000000]">{{ student.name }}</td>
               <td class="py-4 px-4 font-sans text-[14px] text-[#666666]">{{ student.email }}</td>
               <td class="py-4 px-4 text-right">
                 <button 
+ feature/billing-and-grades-haneen
                   @click="cohortStore.openStudentProfile(student.id, student.name, activeCohortName, 'General')"
                   class="h-8 px-4 rounded-md bg-[#000000] text-[#FFFFFF] font-sans text-[12px] hover:bg-[#111111] transition-colors"
+
+                  @click.stop.prevent="cohortStore.openStudentProfile(student.id, student.name, activeCohortName, student.lab_group_name ?? 'Unassigned')"
+                  class="text-[12px] font-medium text-[#8B1A1A] underline-offset-2 hover:underline focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap relative z-50 cursor-pointer"
+                  :aria-label="`View profile for ${student.name}`"
+release
                 >
                   View Profile
                 </button>

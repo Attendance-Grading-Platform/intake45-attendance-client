@@ -51,12 +51,12 @@
             {{ announcement.title }}
           </h3>
           
-          <p 
-            class="text-neutral-700 text-sm leading-relaxed"
+          <div 
+            class="prose prose-sm max-w-none text-neutral-700"
             :class="{ 'line-clamp-2': !expandedPosts.includes(announcement.id) }"
+            v-html="announcement.body"
           >
-            {{ announcement.body }}
-          </p>
+          </div>
           
           <button 
             @click="toggleExpand(announcement.id)"
