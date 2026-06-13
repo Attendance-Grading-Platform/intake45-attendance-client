@@ -24,7 +24,8 @@ const payload = ref<StoreEngagementPayload>({
 })
 
 // Data options
-const instructors = ref<unknown[]>([])
+interface InstructorOption { id: number; name: string }
+const instructors = ref<InstructorOption[]>([])
 const daysOptions = [
   { value: 0, label: 'Sunday' },
   { value: 1, label: 'Monday' },

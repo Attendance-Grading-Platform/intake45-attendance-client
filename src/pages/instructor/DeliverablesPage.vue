@@ -206,7 +206,7 @@ function formatDate(dateString: string): string {
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span v-if="row.student?.enrolled_lab_groups?.length" class="px-2 py-0.5 bg-[#E6DDD4] border border-[#cfc4c5] rounded-full font-sans font-bold text-[10px] text-[#1b1b1b]">
-                      {{ row.student.enrolled_lab_groups[0].name }}
+                      {{ row.student.enrolled_lab_groups[0]?.name }}
                     </span>
                     <span v-else class="text-[#4c4546] text-xs">—</span>
                   </td>
