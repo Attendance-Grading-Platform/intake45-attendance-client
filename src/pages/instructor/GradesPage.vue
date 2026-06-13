@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref} from 'vue'
+import { ref, onMounted } from 'vue'
+import * as gradeApi from '@/api/modules/grade.api'
+import type { BatchGradeItem } from '@/api/modules/grade.api'
 
 interface GradeComponent {
   id: number
@@ -14,41 +16,94 @@ interface StudentGradeRow {
   scores: Record<number, number | null>
 }
 
-// 1. Mock Data: Grading Components (Header)
-const components = ref<GradeComponent[]>([
-  { id: 101, name: 'Lab Deliverable 1', max: 50, weight: 20 },
-  { id: 102, name: 'Midterm Project', max: 100, weight: 30 },
-  { id: 103, name: 'Final Assessment', max: 100, weight: 50 }
-])
-
-// 2. Mock Data: Students List
-const students = ref<StudentGradeRow[]>([
-  { id: 1, name: 'Ahmed Hassan Essam', scores: { 101: 45, 102: 88, 103: null } },
-  { id: 2, name: 'Sara Mahmoud Khalil', scores: { 101: 48, 102: 92, 103: null } },
-  { id: 3, name: 'Mahmoud Fathy', scores: { 101: 30, 102: 75, 103: null } },
-  { id: 4, name: 'Malak Essam', scores: { 101: 42, 102: null, 103: null } },
-  { id: 5, name: 'Hany Abdelrahman', scores: { 101: 38, 102: 80, 103: null } },
-  { id: 6, name: 'Nour El-Din Hassan', scores: { 101: 50, 102: 95, 103: null } },
-  { id: 7, name: 'Yasmin Ali', scores: { 101: 44, 102: 85, 103: null } },
-  { id: 8, name: 'Ziad Mansour', scores: { 101: 25, 102: 60, 103: null } },
-])
-
+const components = ref<GradeComponent[]>([])
+const students = ref<StudentGradeRow[]>([])
+const courseName = ref('')
+const isLoading = ref(false)
+const loadError = ref(false)
 const isSaving = ref(false)
 const saveSuccess = ref(false)
+const saveError = ref(false)
 
-// Logic to check if a score exceeds the component maximum
 function isInvalid(score: number | null, max: number): boolean {
   if (score === null) return false
   return score > max
 }
 
-function handleSave() {
+onMounted(async () => {
+  isLoading.value = true
+  loadError.value = false
+  try {
+    const res = await gradeApi.getGrades()
+    const records = res.data.data ?? []
+
+    if (records[0]?.course?.name) {
+      courseName.value = records[0].course.name
+    }
+
+    // Derive unique components from API records
+    const compMap = new Map<number, GradeComponent>()
+    for (const g of records) {
+      const cid = g.course_component?.id
+      if (cid !== undefined && !compMap.has(cid)) {
+        compMap.set(cid, {
+          id: cid,
+          name: g.course_component.type ?? `Component ${cid}`,
+          max: g.raw_max,
+          weight: g.course_component.weight ?? 0,
+        })
+      }
+    }
+    components.value = Array.from(compMap.values())
+
+    // Derive student rows with scores keyed by component id
+    const studentMap = new Map<number, StudentGradeRow>()
+    for (const g of records) {
+      const sid = g.student_id
+      const cid = g.course_component?.id
+      if (cid === undefined) continue
+      if (!studentMap.has(sid)) {
+        studentMap.set(sid, {
+          id: sid,
+          name: g.student_name ?? `Student #${sid}`,
+          scores: {},
+        })
+      }
+      studentMap.get(sid)!.scores[cid] = g.raw_score
+    }
+    students.value = Array.from(studentMap.values())
+  } catch (err) {
+    console.error('Failed to load grades:', err)
+    loadError.value = true
+  } finally {
+    isLoading.value = false
+  }
+})
+
+async function handleSave() {
   isSaving.value = true
-  setTimeout(() => {
-    isSaving.value = false
+  saveSuccess.value = false
+  saveError.value = false
+  try {
+    const payload: BatchGradeItem[] = []
+    for (const student of students.value) {
+      for (const comp of components.value) {
+        const score = student.scores[comp.id]
+        if (score !== null && score !== undefined) {
+          payload.push({ student_id: student.id, course_component_id: comp.id, raw_score: score })
+        }
+      }
+    }
+    await gradeApi.batchSaveGrades(payload)
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 3000)
-  }, 1000)
+  } catch (err) {
+    console.error('Batch grade save failed:', err)
+    saveError.value = true
+    setTimeout(() => { saveError.value = false }, 4000)
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -62,7 +117,7 @@ function handleSave() {
             Bulk Grade Entry
           </span>
           <h1 class="font-serif text-[36px] text-[#1b1b1b] mt-1 font-medium">
-            Grade Spreadsheet - Section B
+            Grade Spreadsheet{{ courseName ? ` — ${courseName}` : '' }}
           </h1>
           <p class="text-xs text-[#4c4546] mt-2 italic">Keyboard optimization: Use Tab to navigate between cells.</p>
         </div>
@@ -70,12 +125,15 @@ function handleSave() {
         <div class="flex gap-4 items-center">
           <Transition name="fade">
             <span v-if="saveSuccess" class="text-green-700 font-bold text-xs uppercase tracking-wider">
-              ✓ Scores synchronized to Railway
+              ✓ Scores synchronized
+            </span>
+            <span v-else-if="saveError" class="text-red-700 font-bold text-xs uppercase tracking-wider">
+              ✗ Save failed — check connection
             </span>
           </Transition>
           <button
             @click="handleSave"
-            :disabled="isSaving"
+            :disabled="isSaving || isLoading || students.length === 0"
             class="bg-[#940002] text-white px-8 py-3 rounded-md font-bold text-[11px] uppercase tracking-[1px] hover:opacity-90 transition-all disabled:opacity-50"
           >
             {{ isSaving ? 'Synchronizing...' : 'Save All Changes' }}
@@ -83,7 +141,24 @@ function handleSave() {
         </div>
       </header>
 
-      <div class="bg-white border border-[#C9BDB8] rounded-[10px] overflow-hidden shadow-sm">
+      <!-- Loading -->
+      <div v-if="isLoading" class="bg-white border border-[#C9BDB8] rounded-[10px] py-20 text-center">
+        <div class="w-6 h-6 border-2 border-[#C9BDB8] border-t-[#940002] rounded-full animate-spin mx-auto mb-3"></div>
+        <p class="text-sm text-[#4c4546]">Loading grade data…</p>
+      </div>
+
+      <!-- Error -->
+      <div v-else-if="loadError" class="bg-white border border-[#C9BDB8] rounded-[10px] py-20 text-center">
+        <p class="text-sm text-[#ba1a1a] font-medium">Failed to load grades. Please refresh the page.</p>
+      </div>
+
+      <!-- Empty -->
+      <div v-else-if="students.length === 0" class="bg-white border border-[#C9BDB8] rounded-[10px] py-20 text-center">
+        <p class="text-sm text-[#4c4546] italic">No grade records found for your assigned lab group.</p>
+      </div>
+
+      <!-- Grade table -->
+      <div v-else class="bg-white border border-[#C9BDB8] rounded-[10px] overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
           <table class="w-full border-collapse">
             <thead>
@@ -99,7 +174,7 @@ function handleSave() {
                   <p class="font-bold text-[11px] text-[#1b1b1b] uppercase tracking-[0.5px] truncate max-w-37.5">
                     {{ comp.name }}
                   </p>
-                  <p class="text-[9px] text-[#4c4546] font-mono mt-1">MAX: {{ comp.max }} pts</p>
+                  <p class="text-[9px] text-[#4c4546] font-mono mt-1">MAX: {{ comp.max }} pts · {{ comp.weight }}%</p>
                 </th>
                 <th class="py-4 px-6 text-center font-bold text-[11px] text-[#4c4546] uppercase tracking-[1px] bg-[#f9f9f9] border-l border-[#C9BDB8]">
                   Total (%)
@@ -118,30 +193,32 @@ function handleSave() {
                   class="p-2 border-l border-[#C9BDB8]/20"
                 >
                   <div class="relative group/input">
-                <input
-              type="number"
-              :value="student.scores[comp.id] ?? ''"
-              @input="student.scores[comp.id] = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
-              class="w-full h-10 text-center border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-[#940002] rounded-sm font-mono text-[14px] transition-all"
-              :class="{ 'text-red-600 font-bold bg-red-50': isInvalid(student.scores[comp.id] as any, comp.max) }"
-              placeholder="--"
-            />
-            <span
-              v-if="isInvalid(student.scores[comp.id] as any, comp.max)"
-              class="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[9px] px-2 py-0.5 rounded-full z-20 whitespace-nowrap"
-            >
-              Exceeds Max!
-            </span>
+                    <input
+                      type="number"
+                      :value="student.scores[comp.id] ?? ''"
+                      @input="student.scores[comp.id] = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
+                      class="w-full h-10 text-center border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-[#940002] rounded-sm font-mono text-[14px] transition-all"
+                      :class="{ 'text-red-600 font-bold bg-red-50': isInvalid(student.scores[comp.id] ?? null, comp.max) }"
+                      placeholder="--"
+                    />
+                    <span
+                      v-if="isInvalid(student.scores[comp.id] ?? null, comp.max)"
+                      class="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[9px] px-2 py-0.5 rounded-full z-20 whitespace-nowrap"
+                    >
+                      Exceeds Max!
+                    </span>
                   </div>
                 </td>
 
                 <td class="py-3 px-6 text-center bg-[#f9f9f9] border-l border-[#C9BDB8]">
                   <span class="font-mono font-bold text-[14px] text-[#940002]">
                     {{
-                      Math.round(
-                        Object.values(student.scores).reduce((a, b) => (a || 0) + (b || 0), 0)! /
-                        components.reduce((a, b) => a + b.max, 0) * 100
-                      )
+                      components.length > 0 && components.reduce((a, b) => a + b.max, 0) > 0
+                        ? Math.round(
+                            Object.values(student.scores).reduce((a: number, b) => a + (b ?? 0), 0) /
+                            components.reduce((a, b) => a + b.max, 0) * 100
+                          )
+                        : 0
                     }}%
                   </span>
                 </td>
@@ -153,7 +230,7 @@ function handleSave() {
 
       <footer class="mt-8 flex justify-between items-center opacity-60">
         <p class="text-[10px] font-bold text-[#4c4546] uppercase tracking-[1px]">Drafting Mode · Changes not yet synced</p>
-        <p class="text-[10px] font-bold text-[#4c4546] uppercase tracking-[1px]">Cohort Data: Intake 45 · Section B</p>
+        <p class="text-[10px] font-bold text-[#4c4546] uppercase tracking-[1px]">Grading your assigned lab group only</p>
       </footer>
 
     </div>

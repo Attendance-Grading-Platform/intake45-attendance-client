@@ -11,7 +11,6 @@ const { cohorts, selectedCohortId, atRiskStudents, isLoading: isAtRiskLoading, f
 
 onMounted(async () => {
   await fetchCohortsAndInitialAtRisk();
-  
   await cohortStore.fetchCohorts();
   const firstCohort = cohortStore.cohorts[0];
   if (firstCohort) {
@@ -23,37 +22,11 @@ const activeCohortName = computed(() => {
   return cohortStore.cohorts[0]?.name ?? 'No Active Cohorts';
 });
 
-// ── Branch-level metrics and billing (layered additions) ──
+const activeAtRiskCohortName = computed(() => {
+  return cohorts.value.find((c: { cohort_id: number; cohort_name: string }) => c.cohort_id === selectedCohortId.value)?.cohort_name ?? 'Unknown Cohort';
+});
 
-const MOCK_BRANCH_METRICS = {
-  active_tracks: 3,
-  total_enrolled: 87,
-  at_risk_count: 5,
-  pending_billing_count: 2,
-  cohorts: [
-    { cohort_id: 1, cohort_name: 'Intake 46 — Full-Stack',     students_count: 45 },
-    { cohort_id: 2, cohort_name: 'Intake 46 — Data Science',   students_count: 28 },
-    { cohort_id: 3, cohort_name: 'Intake 46 — Cybersecurity',  students_count: 14 },
-  ],
-}
-
-const MOCK_BILLING_ROLLUP: BillingRollup = {
-  id: 1,
-  cohort_id: 1,
-  cohort_name: 'Intake 46 — Full-Stack',
-  generated_at: new Date().toISOString(),
-  total_internal_hours: 120,
-  total_external_hours: 48,
-  total_cost: 14400,
-  cost_per_student: 320,
-  students_count: 45,
-  entries: [
-    { id: 1, user_id: 11, name: 'Ahmed Essam',   compensation_type: 'internal', delivered_hours: 60, hourly_rate: 80,  fixed_salary: 0, hourly_component: 4800, total_amount: 4800 },
-    { id: 2, user_id: 12, name: 'Sara Khalil',   compensation_type: 'internal', delivered_hours: 60, hourly_rate: 80,  fixed_salary: 0, hourly_component: 4800, total_amount: 4800 },
-    { id: 3, user_id: 13, name: 'Mahmoud Fathy', compensation_type: 'external', delivered_hours: 28, hourly_rate: 120, fixed_salary: 0, hourly_component: 3360, total_amount: 3360 },
-    { id: 4, user_id: 14, name: 'Malak Essam',   compensation_type: 'external', delivered_hours: 20, hourly_rate: 72,  fixed_salary: 0, hourly_component: 1440, total_amount: 1440 },
-  ],
-}
+// ── Branch-level metrics and billing ──────────────────────────
 
 interface BranchMetrics {
   active_tracks: number
@@ -81,9 +54,7 @@ async function loadBranchMetrics() {
     }
     const data = (res.data.data ?? []) as AnalyticsItem[]
     if (data.length === 0) {
-      metrics.value = MOCK_BRANCH_METRICS
-      billingCohortId.value = MOCK_BRANCH_METRICS.cohorts[0]!.cohort_id
-      loadBilling(MOCK_BRANCH_METRICS.cohorts[0]!.cohort_id)
+      metrics.value = null
       return
     }
     const firstCohortId = data[0]?.meta?.cohort_id ?? data[0]?.cohort_id ?? null
@@ -102,10 +73,9 @@ async function loadBranchMetrics() {
       billingCohortId.value = firstCohortId
       loadBilling(firstCohortId)
     }
-  } catch {
-    metrics.value = MOCK_BRANCH_METRICS
-    billingCohortId.value = MOCK_BRANCH_METRICS.cohorts[0].cohort_id
-    loadBilling(MOCK_BRANCH_METRICS.cohorts[0].cohort_id)
+  } catch (err) {
+    console.error('Failed to load branch analytics:', err)
+    metrics.value = null
   } finally {
     metricsLoading.value = false
   }
@@ -117,10 +87,10 @@ async function loadBilling(cohortId: number) {
   billingRollup.value = null
   try {
     const res = await billingApi.getRollup(cohortId)
-    const data: BillingRollup | null = res.data.data ?? null
-    billingRollup.value = data ?? MOCK_BILLING_ROLLUP
-  } catch {
-    billingRollup.value = MOCK_BILLING_ROLLUP
+    billingRollup.value = res.data.data ?? null
+  } catch (err) {
+    console.error('Failed to load billing rollup:', err)
+    billingRollup.value = null
   } finally {
     billingLoading.value = false
   }
@@ -132,23 +102,17 @@ const maxEnrolled = computed(() => {
 })
 
 const statCards = computed(() => [
-  { label: 'Active Tracks',    value: metrics.value?.active_tracks ?? '—',           icon: '🛤️' },
-  { label: 'Total Enrolled',   value: metrics.value?.total_enrolled ?? '—',           icon: '🎓' },
-  { label: 'At-Risk Students', value: metrics.value?.at_risk_count ?? '—',            icon: '⚠️' },
-  { label: 'Pending Billing',  value: metrics.value?.pending_billing_count ?? '—',    icon: '💳' },
+  { label: 'Active Tracks',    value: metrics.value?.active_tracks ?? '—',        icon: '🛤️' },
+  { label: 'Total Enrolled',   value: metrics.value?.total_enrolled ?? '—',        icon: '🎓' },
+  { label: 'At-Risk Students', value: metrics.value?.at_risk_count ?? '—',         icon: '⚠️' },
+  { label: 'Pending Billing',  value: metrics.value?.pending_billing_count ?? '—', icon: '💳' },
 ])
 
 function exportBillingCsv() {
   if (!billingRollup.value) return
   const rows = [
     ['Instructor', 'Type', 'Delivered Hours', 'Hourly Rate', 'Total Amount'],
-    ...billingRollup.value.entries.map(e => [
-      e.name,
-      e.compensation_type,
-      e.delivered_hours,
-      e.hourly_rate,
-      e.total_amount,
-    ]),
+    ...billingRollup.value.entries.map(e => [e.name, e.compensation_type, e.delivered_hours, e.hourly_rate, e.total_amount]),
   ]
   const csv = rows.map(r => r.join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -167,12 +131,8 @@ onMounted(() => { loadBranchMetrics() })
   <div class="bg-[#FFFFFF] p-6 rounded-[10px] border border-[#E0D4B8]">
 
       <div class="mb-6">
-        <h3 class="font-sans text-[11px] text-[#888888] uppercase tracking-[1.5px] mb-1">
-          Branch Manager View
-        </h3>
-        <h1 class="font-serif text-[26px] text-[#000000] leading-none mb-4">
-          Dashboard
-        </h1>
+        <h3 class="font-sans text-[11px] text-[#888888] uppercase tracking-[1.5px] mb-1">Branch Manager View</h3>
+        <h1 class="font-serif text-[26px] text-[#000000] leading-none mb-4">Dashboard</h1>
         <hr class="border-t border-[#E0D4B8]" />
       </div>
 
@@ -209,20 +169,18 @@ onMounted(() => { loadBranchMetrics() })
                 :style="{ width: Math.min((cohort.students_count / maxEnrolled) * 100, 100) + '%' }"
               />
             </div>
-            <span class="w-8 font-mono text-[12px] text-[#666666] tabular-nums text-right shrink-0">
-              {{ cohort.students_count }}
-            </span>
+            <span class="w-8 font-mono text-[12px] text-[#666666] tabular-nums text-right shrink-0">{{ cohort.students_count }}</span>
           </div>
         </div>
       </div>
 
-      <!-- At Risk Students Card -->
+      <!-- At Risk Students -->
       <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
           <h2 class="font-serif text-xl text-neutral-900">At-Risk Students</h2>
           <div v-if="cohorts.length > 0">
-            <select 
-              v-model="selectedCohortId" 
+            <select
+              v-model="selectedCohortId"
               @change="selectCohort(selectedCohortId as number)"
               class="text-sm bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             >
@@ -233,16 +191,14 @@ onMounted(() => { loadBranchMetrics() })
           </div>
         </div>
 
-        <div v-if="isAtRiskLoading" class="text-sm text-slate-500 py-4">
-          Loading at-risk students...
-        </div>
+        <div v-if="isAtRiskLoading" class="text-sm text-slate-500 py-4">Loading at-risk students...</div>
         <div v-else-if="atRiskStudents.length === 0" class="bg-emerald-50 border border-emerald-200 rounded-lg p-6 text-center text-emerald-700">
           <p class="font-medium">No at-risk students in this cohort.</p>
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div 
-            v-for="student in atRiskStudents" 
-            :key="student.student_id" 
+          <div
+            v-for="student in atRiskStudents"
+            :key="student.student_id"
             class="bg-white border border-rose-200 shadow-sm rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
           >
             <div>
@@ -255,9 +211,10 @@ onMounted(() => { loadBranchMetrics() })
                 <span v-if="student.gpa < 60">GPA: <span class="font-bold text-rose-600">{{ student.gpa }}</span></span>
               </div>
             </div>
-            <button 
-              @click="cohortStore.openStudentProfile(student.student_id, student.name, 'At-Risk View', 'General')"
-              class="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-md"
+            <button
+              @click.stop.prevent="cohortStore.openStudentProfile(student.student_id, student.name, activeAtRiskCohortName, student.lab_group_name ?? 'Unassigned')"
+              class="text-[12px] font-medium text-[#8B1A1A] underline-offset-2 hover:underline focus:outline-none relative z-50 cursor-pointer text-left w-max"
+              :aria-label="`View profile for ${student.name}`"
             >
               View
             </button>
@@ -265,16 +222,13 @@ onMounted(() => { loadBranchMetrics() })
         </div>
       </div>
 
+      <!-- Cohort Roster -->
       <div class="mb-4">
-        <h2 class="font-serif text-xl text-[#000000]">
-          {{ activeCohortName }} Full Roster
-        </h2>
+        <h2 class="font-serif text-xl text-[#000000]">{{ activeCohortName }} Full Roster</h2>
       </div>
 
-      <div v-if="cohortStore.isLoading" class="text-[14px] text-[#888888] py-4 text-center">
-        Loading students...
-      </div>
-      
+      <div v-if="cohortStore.isLoading" class="text-[14px] text-[#888888] py-4 text-center">Loading students...</div>
+
       <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
@@ -285,17 +239,18 @@ onMounted(() => { loadBranchMetrics() })
             </tr>
           </thead>
           <tbody>
-            <tr 
-              v-for="student in cohortStore.students" 
+            <tr
+              v-for="student in cohortStore.students"
               :key="student.id"
-              class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors"
+              class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors group"
             >
               <td class="py-4 px-4 font-sans text-[14px] text-[#000000]">{{ student.name }}</td>
               <td class="py-4 px-4 font-sans text-[14px] text-[#666666]">{{ student.email }}</td>
               <td class="py-4 px-4 text-right">
-                <button 
-                  @click="cohortStore.openStudentProfile(student.id, student.name, activeCohortName, 'General')"
-                  class="h-8 px-4 rounded-md bg-[#000000] text-[#FFFFFF] font-sans text-[12px] hover:bg-[#111111] transition-colors"
+                <button
+                  @click.stop.prevent="cohortStore.openStudentProfile(student.id, student.name, activeCohortName, student.lab_group_name ?? 'Unassigned')"
+                  class="text-[12px] font-medium text-[#8B1A1A] underline-offset-2 hover:underline focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap relative z-50 cursor-pointer"
+                  :aria-label="`View profile for ${student.name}`"
                 >
                   View Profile
                 </button>
@@ -308,7 +263,7 @@ onMounted(() => { loadBranchMetrics() })
         </table>
       </div>
 
-      <!-- Billing Rollup Table -->
+      <!-- Billing Rollup (BIL-4: Branch Manager only) -->
       <div class="mt-10">
         <div class="mb-4 flex items-end justify-between">
           <div>
@@ -322,9 +277,7 @@ onMounted(() => { loadBranchMetrics() })
               class="h-btn-sm rounded-btn border border-[#E0D4B8] bg-white px-3 font-sans text-sm text-[#666666] focus:border-[#000000] focus:outline-none"
               @change="loadBilling(Number(($event.target as HTMLSelectElement).value))"
             >
-              <option v-for="c in metrics!.cohorts" :key="c.cohort_id" :value="c.cohort_id">
-                {{ c.cohort_name }}
-              </option>
+              <option v-for="c in metrics!.cohorts" :key="c.cohort_id" :value="c.cohort_id">{{ c.cohort_name }}</option>
             </select>
             <button
               v-if="billingRollup"
@@ -340,16 +293,13 @@ onMounted(() => { loadBranchMetrics() })
         </div>
         <hr class="border-t border-[#E0D4B8] mb-6" />
 
-        <div v-if="billingLoading" class="py-8 text-center font-sans text-sm text-[#888888] animate-pulse">
-          Loading billing data...
-        </div>
+        <div v-if="billingLoading" class="py-8 text-center font-sans text-sm text-[#888888] animate-pulse">Loading billing data...</div>
 
         <div v-else-if="!billingRollup" class="py-8 text-center font-sans text-sm text-[#888888]">
           No billing rollup generated for this cohort yet.
         </div>
 
         <template v-else>
-          <!-- Summary strip -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-card border border-[#E0D4B8] p-4">
               <p class="font-sans text-[11px] text-[#888888] uppercase tracking-[1.5px] mb-1">Total Cost</p>
@@ -373,7 +323,6 @@ onMounted(() => { loadBranchMetrics() })
             </div>
           </div>
 
-          <!-- Entries table -->
           <div class="overflow-x-auto rounded-card border border-[#E0D4B8]">
             <table class="w-full text-left border-collapse font-sans text-sm">
               <thead>
@@ -386,11 +335,7 @@ onMounted(() => { loadBranchMetrics() })
                 </tr>
               </thead>
               <tbody class="divide-y divide-[#E0D4B8]">
-                <tr
-                  v-for="entry in billingRollup.entries"
-                  :key="entry.id"
-                  class="hover:bg-neutral-50 transition-colors"
-                >
+                <tr v-for="entry in billingRollup.entries" :key="entry.id" class="hover:bg-neutral-50 transition-colors">
                   <td class="py-4 px-5 font-medium text-[#000000]">{{ entry.name }}</td>
                   <td class="py-4 px-5">
                     <span
@@ -404,9 +349,7 @@ onMounted(() => { loadBranchMetrics() })
                   <td class="py-4 px-5 text-right font-mono text-[#666666] tabular-nums">
                     {{ entry.hourly_rate > 0 ? '$' + entry.hourly_rate + '/hr' : '—' }}
                   </td>
-                  <td class="py-4 px-5 text-right font-mono font-medium text-[#000000] tabular-nums">
-                    ${{ entry.total_amount.toLocaleString() }}
-                  </td>
+                  <td class="py-4 px-5 text-right font-mono font-medium text-[#000000] tabular-nums">${{ entry.total_amount.toLocaleString() }}</td>
                 </tr>
                 <tr v-if="billingRollup.entries.length === 0">
                   <td colspan="5" class="py-8 text-center text-[#888888]">No billing entries found.</td>

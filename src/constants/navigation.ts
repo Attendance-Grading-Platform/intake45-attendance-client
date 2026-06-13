@@ -114,6 +114,11 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
       icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
     },
     {
+      label: "Submissions",
+      name: "instructor-submissions",
+      icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+    },
+    {
       label: "Announcements",
       name: "instructor-announcements",
       icon: "M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z",
@@ -139,6 +144,11 @@ export const ROLE_NAVIGATION: Record<Role, NavItem[]> = {
       label: "Assignments",
       name: "student-assignments",
       icon: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12",
+    },
+    {
+      label: "Progress",
+      name: "student-progress",
+      icon: "M2.25 18L9 11.25l4.306 4.306a11.95 11.95 0 015.814-5.518l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941",
     },
     {
       label: "Excuse Requests",

@@ -4,10 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { useCohortDetail } from '@/composables/useCohortDetail'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import { useAuthStore } from '@/stores/auth.store'
-import { ROLES } from '@/constants/roles'
-
-const auth = useAuthStore()
 
 // ── Route & Router ─────────────────────────────────────────────
 const route = useRoute()
@@ -78,29 +74,19 @@ async function handleConfirmClose() {
 }
 
 // ── Nav: Quick Links ───────────────────────────────────────────
-const quickLinks = computed(() => {
-    if (auth.role === ROLES.BRANCH_MANAGER) {
-        return [
-            { label: 'View Tracks', icon: '🛤️', to: { name: 'branch-manager-tracks' } },
-            { label: 'Billing Data', icon: '💰', to: { name: 'branch-manager-billing' } },
-            { label: 'Analytics', icon: '📈', to: { name: 'branch-manager-analytics' } },
-            { label: 'All Cohorts', icon: '📂', to: { name: 'branch-manager-cohorts' } },
-        ]
-    }
-    return [
-        { label: 'Manage Students', icon: '👥', to: { name: 'track-admin-students' } },
-        { 
-            label: 'Manage Lab Groups', 
-            icon: '🏫', 
-            to: { 
-                name: 'track-admin-lab-groups', 
-                params: { cohortId: cohort.value?.id } 
-            } 
+const quickLinks = computed(() => [
+    { label: 'Manage Students', icon: '👥', to: { name: 'track-admin-students' } },
+    {
+        label: 'Manage Lab Groups',
+        icon: '🏫',
+        to: {
+            name: 'track-admin-lab-groups',
+            params: { cohortId: cohort.value?.id },
         },
-        { label: 'View Grades', icon: '📊', to: { name: 'track-admin-grades' } },
-        { label: 'Schedule Engagements', icon: '📅', to: { name: 'track-admin-engagements' } },
-    ]
-})
+    },
+    { label: 'View Grades', icon: '📊', to: { name: 'track-admin-grades' } },
+    { label: 'Schedule Engagements', icon: '📅', to: { name: 'track-admin-engagements' } },
+])
 
 // ── Init ───────────────────────────────────────────────────────
 onMounted(fetchCohort)
