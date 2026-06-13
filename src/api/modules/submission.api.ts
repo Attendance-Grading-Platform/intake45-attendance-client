@@ -22,3 +22,7 @@ export const getEngagementDeliverables = (engagementId: number, page = 1) => {
     total: number
   }>>(`/v1/engagements/${engagementId}/deliverables`, { params: { page, per_page: 100 } })
 }
+
+export const evaluateSubmission = (submissionId: number, payload: { raw_score: number; raw_max: number; note?: string }) => {
+  return api.put<ApiResponse<any>>(`/v1/deliverables/${submissionId}/grade`, payload)
+}

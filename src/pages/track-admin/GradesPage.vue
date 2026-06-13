@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useGradeStore } from '@/stores/grade.store'
 import GradeOverridePanel from '@/components/track-admin/GradeOverridePanel.vue'
-import axios from 'axios'
+import { getCohorts } from '@/api/modules/cohort.api'
 
 // ── Types ──────────────────────────────────────────────────
 interface CohortOption {
@@ -44,7 +44,7 @@ const filteredGrades = computed(() => {
 // ── Mount ─────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/v1/cohorts').catch(() => ({ data: { data: [] } }))
+    const res = await getCohorts().catch(() => ({ data: { data: [] } }))
     cohorts.value = (res.data.data ?? []) as CohortOption[]
 
     const active = cohorts.value.find((c) => c.status === 'active')
@@ -71,7 +71,15 @@ onMounted(async () => {
 // ── Actions ───────────────────────────────────────────────
 async function loadGrades(cohortId: number) {
   const result = await gradeStore.fetchCohortGrades(cohortId)
-  grades.value = result as GradeRecord[]
+  grades.value = result.map((g: any) => ({
+    ...g,
+    student_name: g.student?.name || 'Unknown Student',
+    component_name: g.course_component?.course?.name
+      ? `${g.course_component.course.name} - ${g.course_component.type}`
+      : g.course_component?.type || 'Unknown Component',
+    graded_by_name: g.grader?.name,
+    overridden_by_name: g.overridden_by_user?.name || g.overriddenByUser?.name,
+  })) as GradeRecord[]
 }
 
 function openOverride(gradeRecord: GradeRecord) {
@@ -118,7 +126,7 @@ function handlePanelUpdate(val: boolean) {
     </div>
 
     <!-- Grades table -->
-    <div class="rounded-xl border border-neutral-200 overflow-hidden">
+    <div class="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
       <div v-if="gradeStore.isLoading" class="py-12 text-center text-sm text-neutral-400 animate-pulse">
         Loading grades…
       </div>
@@ -130,12 +138,12 @@ function handlePanelUpdate(val: boolean) {
       <table v-else class="w-full text-sm text-left border-collapse">
         <thead>
           <tr class="bg-neutral-50 border-b border-neutral-200">
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal">Student</th>
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal">Component</th>
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-right">Score</th>
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal">Graded By</th>
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-center">Override</th>
-            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-right">Actions</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal whitespace-nowrap">Student</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal whitespace-nowrap">Component</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-right whitespace-nowrap">Score</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal whitespace-nowrap">Graded By</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-center whitespace-nowrap">Override</th>
+            <th class="py-3 px-5 text-[11px] text-neutral-500 uppercase tracking-[0.12em] font-normal text-right whitespace-nowrap">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-neutral-100">
@@ -144,13 +152,13 @@ function handlePanelUpdate(val: boolean) {
             :key="grade.id"
             class="hover:bg-neutral-50 transition-colors"
           >
-            <td class="py-3.5 px-5 font-medium text-neutral-900">{{ grade.student_name }}</td>
-            <td class="py-3.5 px-5 text-neutral-600">{{ grade.component_name }}</td>
-            <td class="py-3.5 px-5 text-right font-mono text-neutral-700 tabular-nums">
+            <td class="py-3.5 px-5 font-medium text-neutral-900 whitespace-nowrap">{{ grade.student_name }}</td>
+            <td class="py-3.5 px-5 text-neutral-600 whitespace-nowrap">{{ grade.component_name }}</td>
+            <td class="py-3.5 px-5 text-right font-mono text-neutral-700 tabular-nums whitespace-nowrap">
               {{ grade.raw_score }} / {{ grade.raw_max }}
             </td>
-            <td class="py-3.5 px-5 text-neutral-500 text-xs">{{ grade.graded_by_name ?? '—' }}</td>
-            <td class="py-3.5 px-5 text-center">
+            <td class="py-3.5 px-5 text-neutral-500 text-xs whitespace-nowrap">{{ grade.graded_by_name ?? '—' }}</td>
+            <td class="py-3.5 px-5 text-center whitespace-nowrap">
               <span
                 v-if="grade.original_value !== null && grade.original_value !== undefined"
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700"
@@ -159,7 +167,7 @@ function handlePanelUpdate(val: boolean) {
               </span>
               <span v-else class="text-neutral-300 text-xs">—</span>
             </td>
-            <td class="py-3.5 px-5 text-right">
+            <td class="py-3.5 px-5 text-right whitespace-nowrap">
               <button
                 class="h-7 px-3 rounded-md border border-neutral-300 text-xs text-neutral-700 hover:border-neutral-900 hover:text-neutral-900 transition-colors"
                 @click="openOverride(grade)"

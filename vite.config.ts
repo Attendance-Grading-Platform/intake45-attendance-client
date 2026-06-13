@@ -23,6 +23,8 @@ export default defineConfig({
   // It does NOT spin up a Node.js server. Therefore, this proxy will NOT exist 
   // on your live server. It is strictly for bypassing CORS while running `npm run dev`.
   server: {
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000', // Changed to IPv4 to fix Docker routing

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { getSubmissionQueue, getSubmissionStats, type SubmissionQueueParams } from '@/api/modules/submission.api'
+
+import GradeEntryModal from '@/components/modals/GradeEntryModal.vue'
+import { getSubmissionQueue, getSubmissionStats, evaluateSubmission, type SubmissionQueueParams } from '@/api/modules/submission.api'
+import { getInstructorDashboard } from '@/api/modules/dashboard.api'
 
 // ── State ───────────────────────────────────────────────────────────────
 const isLoadingStats = ref(true)
@@ -8,6 +11,9 @@ const isLoadingQueue = ref(true)
 
 const stats = ref<any>(null)
 const queueData = ref<any[]>([])
+
+const isGradingModalOpen = ref(false)
+const selectedSubmission = ref<any>(null)
 
 // Filters
 const filters = ref<SubmissionQueueParams>({
@@ -41,9 +47,20 @@ const fetchStats = async () => {
       availableLabGroups.value = stats.value.available_filters.lab_groups || []
     }
   } catch (error) {
-    console.error('Failed to load stats:', error)
+    console.warn('Failed to load stats:', error)
+    stats.value = {}
   } finally {
     isLoadingStats.value = false
+  }
+
+  // Backup fetch for lab groups via dashboard endpoint
+  if (availableLabGroups.value.length === 0) {
+    try {
+      const dbRes = await getInstructorDashboard()
+      availableLabGroups.value = dbRes.data.data.lab_groups || []
+    } catch (e) {
+      console.warn('Fallback lab group fetch failed:', e)
+    }
   }
 }
 
@@ -58,21 +75,50 @@ const fetchQueue = async () => {
     const res = await getSubmissionQueue(payload)
     const paginator = res.data.data
     
-    queueData.value = paginator.data
+    queueData.value = paginator.data || []
+    
+    // Fallback: If stats failed and available filters are empty, extract them from the queue data
+    if (availableCourses.value.length === 0) {
+      const uniqueCourses = new Map()
+      queueData.value.forEach(item => {
+        if (item.course && item.course.id) uniqueCourses.set(item.course.id, item.course)
+        else if (item.course_component?.course && item.course_component.course.id) {
+            uniqueCourses.set(item.course_component.course.id, item.course_component.course)
+        }
+      })
+      availableCourses.value = Array.from(uniqueCourses.values())
+    }
+
+    if (availableLabGroups.value.length === 0) {
+      const uniqueLabGroups = new Map()
+      queueData.value.forEach(item => {
+        if (item.lab_group && item.lab_group.id) uniqueLabGroups.set(item.lab_group.id, item.lab_group)
+        else if (item.student?.enrolled_lab_groups?.length) {
+            uniqueLabGroups.set(item.student.enrolled_lab_groups[0].id, item.student.enrolled_lab_groups[0])
+        }
+      })
+      availableLabGroups.value = Array.from(uniqueLabGroups.values())
+    }
+
     pagination.value = {
       current_page: paginator.current_page,
       last_page: paginator.last_page,
       total: paginator.total,
     }
   } catch (error) {
-    console.error('Failed to load queue:', error)
+    console.warn('Failed to load queue:', error)
+    queueData.value = []
   } finally {
     isLoadingQueue.value = false
   }
 }
 
 onMounted(async () => {
-  await Promise.all([fetchStats(), fetchQueue()])
+  try {
+    await Promise.all([fetchStats(), fetchQueue()])
+  } catch (error) {
+    console.warn('Initialization error:', error)
+  }
 })
 
 // ── Actions ─────────────────────────────────────────────────────────────
@@ -88,24 +134,51 @@ const changePage = (page: number) => {
 }
 
 const handleGrade = (submission: any) => {
-  console.log('Grade requested for submission:', submission)
-  alert(`Open Grading Modal for ${submission.student?.name}`)
+  // Map submission to the expected OverrideGrade format
+  selectedSubmission.value = {
+    id: submission.id,
+    student_id: submission.student_id,
+    raw_score: submission.grade ? submission.grade.score || submission.grade.raw_score : 0,
+    raw_max: submission.course_component?.max_points || 100,
+    final_score: submission.grade ? submission.grade.score || submission.grade.raw_score : 0,
+    override_note: null,
+    course_component: submission.course_component
+  }
+  isGradingModalOpen.value = true
+}
+
+const handleGradeSubmit = async (payload: { gradeId: number; newScore: number; note: string }) => {
+  try {
+    await evaluateSubmission(payload.gradeId, {
+        raw_score: payload.newScore,
+        raw_max: selectedSubmission.value.raw_max,
+        note: payload.note
+    });
+  } catch (e) {
+    console.error("Failed to grade submission", e);
+  } finally {
+    isGradingModalOpen.value = false
+    selectedSubmission.value = null
+    await Promise.all([fetchStats(), fetchQueue()])
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
-const getUrgencyClass = (daysSince: number) => {
+const getUrgencyClass = (daysSince?: number) => {
+  if (daysSince === undefined || daysSince === null) return 'bg-neutral-50 text-neutral-600 ring-neutral-500/10'
   if (daysSince > 5) return 'bg-red-50 text-red-700 ring-red-600/10'
   if (daysSince > 2) return 'bg-amber-50 text-amber-700 ring-amber-600/20'
   return 'bg-neutral-50 text-neutral-600 ring-neutral-500/10'
 }
 
-const getUrgencyText = (daysSince: number) => {
+const getUrgencyText = (daysSince?: number) => {
+  if (daysSince === undefined || daysSince === null) return 'Not submitted'
   if (daysSince === 0) return 'Today'
   if (daysSince === 1) return '1 day ago'
   return `${daysSince} days ago`
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string) => {
   if (!dateString) return '-'
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -247,14 +320,14 @@ const formatDate = (dateString: string) => {
                 </td>
                 <!-- Lab Group Pill -->
                 <td class="py-4 px-6">
-                  <span v-if="item.student?.enrolled_lab_groups && item.student.enrolled_lab_groups.length" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-700 border border-neutral-200">
-                    {{ item.student.enrolled_lab_groups[0].name }}
+                  <span v-if="item.lab_group?.name" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-700 border border-neutral-200">
+                    {{ item.lab_group.name }}
                   </span>
                   <span v-else class="text-neutral-400 text-sm">-</span>
                 </td>
                 <!-- Course -->
                 <td class="py-4 px-6 font-sans text-sm text-neutral-600">
-                  {{ item.course_component?.course?.name || '-' }}
+                  {{ item.course?.name ?? '-' }}
                 </td>
                 <!-- Deliverable (Component type) -->
                 <td class="py-4 px-6 font-sans text-sm text-neutral-600 capitalize">
@@ -262,7 +335,7 @@ const formatDate = (dateString: string) => {
                 </td>
                 <!-- Submitted Date & Urgency Chip -->
                 <td class="py-4 px-6 font-sans">
-                  <div class="text-sm text-neutral-900 mb-1">{{ formatDate(item.created_at) }}</div>
+                  <div class="text-sm text-neutral-900 mb-1">{{ formatDate(item.submitted_at) }}</div>
                   <span
                     v-if="!item.grade"
                     :class="['inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset', getUrgencyClass(item.days_since)]"
@@ -277,7 +350,7 @@ const formatDate = (dateString: string) => {
                 <td class="py-4 px-6 text-right">
                   <button
                     @click="handleGrade(item)"
-                    class="font-sans text-sm font-bold text-brand-red hover:text-red-800 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    class="font-sans text-sm font-bold text-brand-red hover:text-red-800 transition-colors"
                   >
                     {{ item.grade ? 'Re-grade' : 'Grade' }}
                   </button>
@@ -368,5 +441,12 @@ const formatDate = (dateString: string) => {
         </div>
       </div>
     </div>
+    
+    <GradeEntryModal
+      :isOpen="isGradingModalOpen"
+      :grade="selectedSubmission"
+      @close="isGradingModalOpen = false"
+      @submit="handleGradeSubmit"
+    />
   </div>
 </template>
