@@ -1,67 +1,34 @@
-# ITI Attendance & Grading Platform — intake45-attendance-client
+# 🎓 Attendance & Grading Management Platform (ITI Intake 45/46)
 
-> **Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS + shadcn-vue**
-> A robust frontend client for managing branch-wide attendance, grading, and scheduling at ITI.
-
----
-
-## 🌟 Features
-
-- **Role-Based Portals**: Dedicated interfaces for Branch Managers, Track Admins, Instructors, and Students.
-- **Attendance Management**: QR code scan-in/out and a standalone 250-point attendance ledger.
-- **Grading System**: Automated normalization, late penalties for lab deliverables, and Track Admin overrides.
-- **Analytics Dashboards**: At-risk student detection, cohort performance trends, and grader-consistency checks.
-- **Modular Architecture**: Clean separation of concerns with domain-driven API modules and strict TypeScript typing.
+A minimal luxury, high-performance Full-Stack enterprise application designed for tracking student attendance, conducting robust academic grading evaluation, and managing automated billing rollups. Built with **Vue 3 (Vite)** on the frontend and **Laravel (Dockerized)** on the backend.
 
 ---
 
-## 🛠️ Project Setup
+## 🚀 Key Modules & Core Architecture
 
-### Prerequisites
-- Node.js (v18+)
-- npm or pnpm
+### 1. Instructor Grade Entry & Guardrails (GRD-1)
+- Automated grade scaling matrices allowing safe data syncing.
+- **Strict Integrity Rules:** Fully blocks grade overrides unless an official audit text note is provided via the `GradeEntryModal.vue` framework.
 
-### Installation
-```bash
-npm install
-```
+### 2. Track Admin Final Grading System (GRD-5)
+- Fully centralized dashboard located in `src/pages/track-admin/GradesPage.vue`.
+- Integrates continuous Project Grades and Final Exam components into unified batch payloads to secure state locks before final review.
 
-### Environment Configuration
-Copy the example environment file and update it with your backend API URL:
-```bash
-cp .env.example .env
-```
-
-### Development
-```bash
-npm run dev
-```
-
-### Production Build
-```bash
-npm run build
-```
+### 3. Financial Billing Rollup Ledger (BIL-1 & BIL-3)
+- Live computed filtering sorting variables dynamically based on Cohorts and Attendance Types.
+- Features a secure single-action hook ("Export to Central Accounting") that captures logged events and registers automated financial billing cycles.
 
 ---
 
-## 📜 Contributing Rules
-
-Before contributing, please review the [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on:
-- **Branch Naming**: `type/REQUIREMENT-ID-description`
-- **Commit Messages**: `type(scope): [REQUIREMENT-ID] description`
-- **TypeScript & Coding Standards**
+## 🛠️ Tech Stack & Styling Aesthetic
+- **Frontend:** Vue 3 (Composition API), Pinia (State Management), TypeScript, Vite.
+- **Backend:** Laravel, PostgreSQL, Docker Compose ecosystem.
+- **Design System:** Tailored **Zara-inspired dynamic UI** utilizing a clean, minimal luxury black-and-white color paradigm with strict type safety.
 
 ---
 
-## 🏗️ Architecture Overview
+## 💻 Local Development Setup
 
-- `src/api/`: Modular HTTP clients and Axios interceptors.
-- `src/components/`: Reusable UI components grouped by use casing (charts, forms, shared, tables).
-- `src/pages/`: Role-scanned page definitions.
-- `src/stores/`: Shared state using Pinia setup stores.
-- `src/types/`: Strict data shape definitions.
-- `src/utils/`: Pure business logic (e.g., normalization, penalties).
-
----
-
-*ITI Attendance & Grading Platform — v2.0*
+1. **Clone the project components:**
+   ```bash
+   git clone <repository-url>
