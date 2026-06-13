@@ -87,9 +87,7 @@ const changePage = (page: number) => {
   fetchQueue()
 }
 
-const handleGrade = (submission: Record<string, unknown>) => {
-  console.log('Opening grading modal for submission:', submission)
-}
+const handleGrade = (_submission: Record<string, unknown>) => {}
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 const getUrgencyClass = (daysSince: number) => {

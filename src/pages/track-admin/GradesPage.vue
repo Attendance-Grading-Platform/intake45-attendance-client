@@ -23,9 +23,6 @@ interface GradeRecord {
   original_value?: number | null
   override_note?: string | null
   overridden_by_name?: string | null
-  // Added fields for GRD-5 final grading capability
-  final_exam_grade?: number | null
-  project_grade?: number | null
 }
 
 // ── Store & state ──────────────────────────────────────────
@@ -37,9 +34,6 @@ const searchQuery     = ref('')
 const isPanelOpen     = ref(false)
 const selectedGrade   = ref<GradeRecord | null>(null)
 const grades          = ref<GradeRecord[]>([])
-const isSavingFinal   = ref(false)
-const saveSuccess     = ref(false)
-const saveFinalError  = ref(false)
 
 const filteredGrades = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
@@ -77,12 +71,7 @@ onMounted(async () => {
 // ── Actions ───────────────────────────────────────────────
 async function loadGrades(cohortId: number) {
   const result = await gradeStore.fetchCohortGrades(cohortId)
-  // Ensure fields are initialized if not present from backend
-  grades.value = (result as GradeRecord[]).map(g => ({
-    ...g,
-    final_exam_grade: g.final_exam_grade ?? null,
-    project_grade: g.project_grade ?? null
-  }))
+  grades.value = result as GradeRecord[]
 }
 
 function openOverride(gradeRecord: GradeRecord) {
@@ -100,31 +89,6 @@ function handlePanelUpdate(val: boolean) {
   isPanelOpen.value = val
 }
 
-// Added backend submission function for final admin records
-async function saveFinalGrades() {
-  if (!selectedCohort.value) return
-  isSavingFinal.value = true
-  saveSuccess.value  = false
-  saveFinalError.value = false
-  try {
-    const payload = grades.value.map(g => ({
-      student_id: g.student_id,
-      course_component_id: g.course_component_id,
-      final_exam_grade: g.final_exam_grade,
-      project_grade: g.project_grade
-    }))
-    await api.post('/v1/admin/final-grades/batch', {
-      cohort_id: selectedCohort.value,
-      grades: payload
-    })
-    saveSuccess.value = true
-  } catch {
-    saveFinalError.value = true
-  } finally {
-    isSavingFinal.value = false
-    setTimeout(() => { saveSuccess.value = false; saveFinalError.value = false }, 4000)
-  }
-}
 </script>
 
 <template>
@@ -172,9 +136,7 @@ async function saveFinalGrades() {
             <tr class="bg-[#F5EDEA]/40 border-b border-[#C9BDB8]">
               <th class="py-4 px-6 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold">Student</th>
               <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold">Component</th>
-              <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-right">Midterm/Lab Score</th>
-              <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-center">Final Exam (Max 100)</th>
-              <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-center">Project (Max 100)</th>
+              <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-right">Score</th>
               <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold">Graded By</th>
               <th class="py-4 px-5 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-center">Audit Track</th>
               <th class="py-4 px-6 text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold text-right">Action</th>
@@ -190,22 +152,6 @@ async function saveFinalGrades() {
               <td class="py-4 px-5 text-gray-700 font-medium">{{ grade.component_name }}</td>
               <td class="py-4 px-5 text-right font-mono font-bold text-[#1b1b1b]">
                 {{ grade.raw_score }} / {{ grade.raw_max }}
-              </td>
-              <td class="py-4 px-5 text-center">
-                <input
-                  type="number"
-                  v-model.number="grade.final_exam_grade"
-                  placeholder="—"
-                  class="w-24 h-9 border border-[#C9BDB8] rounded-sm text-center focus:ring-0 focus:border-[#940002] font-mono text-xs bg-transparent"
-                />
-              </td>
-              <td class="py-4 px-5 text-center">
-                <input
-                  type="number"
-                  v-model.number="grade.project_grade"
-                  placeholder="—"
-                  class="w-24 h-9 border border-[#C9BDB8] rounded-sm text-center focus:ring-0 focus:border-[#940002] font-mono text-xs bg-transparent"
-                />
               </td>
               <td class="py-4 px-5 text-[#4c4546] text-xs font-medium">{{ grade.graded_by_name ?? 'System Ledger' }}</td>
               <td class="py-4 px-5 text-center">
@@ -231,27 +177,6 @@ async function saveFinalGrades() {
       </div>
     </div>
 
-    <div class="mt-6 flex items-center justify-between">
-      <div>
-        <Transition name="fade">
-          <p v-if="saveSuccess" class="text-xs font-bold text-green-700 uppercase tracking-[0.5px]">
-            ✓ Final records and terminal exams updated globally.
-          </p>
-          <p v-else-if="saveFinalError" class="text-xs font-bold text-[#ba1a1a] uppercase tracking-[0.5px]">
-            Save failed — changes recorded locally only.
-          </p>
-        </Transition>
-      </div>
-      <button
-        type="button"
-        :disabled="isSavingFinal || filteredGrades.length === 0"
-        @click="saveFinalGrades"
-        class="h-12 px-10 rounded-md bg-[#940002] text-white text-[11px] font-bold uppercase tracking-[1.5px] shadow-sm hover:opacity-90 transition-all disabled:opacity-40"
-      >
-        {{ isSavingFinal ? 'Synchronizing…' : 'Save Final & Project Grades' }}
-      </button>
-    </div>
-
     <GradeOverridePanel
       v-if="selectedGrade"
       :model-value="isPanelOpen"
@@ -262,9 +187,3 @@ async function saveFinalGrades() {
   </div>
 </template>
 
-<style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 250ms ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-</style>

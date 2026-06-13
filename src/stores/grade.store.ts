@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Grade } from '@/api/modules/grade.api'
+import type { Grade, BatchGradeItem } from '@/api/modules/grade.api'
 import * as gradeApi from '@/api/modules/grade.api'
 import api from '@/api/axios'
 
@@ -58,12 +58,17 @@ export const useGradeStore = defineStore('grade', () => {
 
     for (const [key, raw_score] of entries) {
       const [studentId, componentId] = key.split('_').map(Number)
+      const raw_max = rawMax[String(componentId)]
+      if (raw_max === undefined || raw_max <= 0) {
+        failed++
+        continue
+      }
       try {
         await api.post('/v1/grades', {
           student_id:          studentId,
           course_component_id: componentId,
           raw_score,
-          raw_max: rawMax[String(componentId)] ?? 100,
+          raw_max,
         })
         success++
       } catch {
@@ -78,6 +83,40 @@ export const useGradeStore = defineStore('grade', () => {
     if (failed > 0) {
       saveError.value = `${failed} grade(s) failed to save.`
     }
+    return { success, failed }
+  }
+
+  // ── Batch save: parallel individual POSTs to POST /api/v1/grades ──
+  // Replaces the non-existent /v1/grades/batch endpoint.
+  // Promise.allSettled fires all requests in parallel; partial failures
+  // are counted and surfaced without aborting the remaining saves.
+  async function batchSaveGrades(
+    items: BatchGradeItem[]
+  ): Promise<{ success: number; failed: number }> {
+    isSaving.value  = true
+    saveError.value = null
+
+    const results = await Promise.allSettled(
+      items.map(item =>
+        api.post('/v1/grades', {
+          student_id:          item.student_id,
+          course_component_id: item.course_component_id,
+          raw_score:           item.raw_score,
+          raw_max:             item.raw_max,
+        })
+      )
+    )
+
+    const success = results.filter(r => r.status === 'fulfilled').length
+    const failed  = results.filter(r => r.status === 'rejected').length
+
+    await fetchGrades()
+
+    isSaving.value = false
+    if (failed > 0) {
+      saveError.value = `${failed} grade(s) failed to save.`
+    }
+
     return { success, failed }
   }
 
@@ -132,6 +171,7 @@ export const useGradeStore = defineStore('grade', () => {
     overrideError,
     fetchGrades,
     submitGrades,
+    batchSaveGrades,
     overrideGrade,
     fetchCohortGrades,
   }

@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue'
 import * as gradeApi from '@/api/modules/grade.api'
 import type { BatchGradeItem } from '@/api/modules/grade.api'
+import { useGradeStore } from '@/stores/grade.store'
+
+const gradeStore = useGradeStore()
 
 interface GradeComponent {
   id: number
@@ -27,7 +30,23 @@ const saveError = ref(false)
 
 function isInvalid(score: number | null, max: number): boolean {
   if (score === null) return false
-  return score > max
+  return score < 0 || score > max
+}
+
+function parseScore(raw: string): number | null {
+  if (raw === '') return null
+  const n = Number(raw)
+  return isNaN(n) ? null : n
+}
+
+function computeWeightedTotal(student: StudentGradeRow): number {
+  let total = 0
+  for (const comp of components.value) {
+    const score = student.scores[comp.id] ?? null
+    if (score === null || comp.max === 0) continue
+    total += (score / comp.max) * comp.weight
+  }
+  return Math.round(total)
 }
 
 onMounted(async () => {
@@ -89,16 +108,21 @@ async function handleSave() {
     for (const student of students.value) {
       for (const comp of components.value) {
         const score = student.scores[comp.id]
-        if (score !== null && score !== undefined) {
-          payload.push({ student_id: student.id, course_component_id: comp.id, raw_score: score })
+        if (score !== null && score !== undefined && !isNaN(score)) {
+          payload.push({ student_id: student.id, course_component_id: comp.id, raw_score: score, raw_max: comp.max })
         }
       }
     }
-    await gradeApi.batchSaveGrades(payload)
-    saveSuccess.value = true
-    setTimeout(() => { saveSuccess.value = false }, 3000)
+    const { failed } = await gradeStore.batchSaveGrades(payload)
+    if (failed === 0) {
+      saveSuccess.value = true
+      setTimeout(() => { saveSuccess.value = false }, 3000)
+    } else {
+      saveError.value = true
+      setTimeout(() => { saveError.value = false }, 4000)
+    }
   } catch (err) {
-    console.error('Batch grade save failed:', err)
+    console.error('Grade save failed:', err)
     saveError.value = true
     setTimeout(() => { saveError.value = false }, 4000)
   } finally {
@@ -196,7 +220,7 @@ async function handleSave() {
                     <input
                       type="number"
                       :value="student.scores[comp.id] ?? ''"
-                      @input="student.scores[comp.id] = ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)"
+                      @input="student.scores[comp.id] = parseScore(($event.target as HTMLInputElement).value)"
                       class="w-full h-10 text-center border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-[#940002] rounded-sm font-mono text-[14px] transition-all"
                       :class="{ 'text-red-600 font-bold bg-red-50': isInvalid(student.scores[comp.id] ?? null, comp.max) }"
                       placeholder="--"
@@ -212,14 +236,7 @@ async function handleSave() {
 
                 <td class="py-3 px-6 text-center bg-[#f9f9f9] border-l border-[#C9BDB8]">
                   <span class="font-mono font-bold text-[14px] text-[#940002]">
-                    {{
-                      components.length > 0 && components.reduce((a, b) => a + b.max, 0) > 0
-                        ? Math.round(
-                            Object.values(student.scores).reduce((a: number, b) => a + (b ?? 0), 0) /
-                            components.reduce((a, b) => a + b.max, 0) * 100
-                          )
-                        : 0
-                    }}%
+                    {{ computeWeightedTotal(student) }}%
                   </span>
                 </td>
               </tr>
