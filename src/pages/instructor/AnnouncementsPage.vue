@@ -1,16 +1,28 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth.store'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import { getActiveSessions } from '@/api/modules/attendance.api'
 import { getCohorts } from '@/api/modules/cohort.api'
 import { getInstructorAnnouncements, createAnnouncement } from '@/api/modules/announcement.api'
 
+const authStore = useAuthStore()
+
 // ── State ───────────────────────────────────────────────────────────────
-const isLoadingSessions = ref(true)
-const activeSessions = ref<any[]>([])
-const hasActiveSession = computed(() => activeSessions.value.length > 0)
+const isCheckingWindow = ref(true)
+
+const isWithinEngagementWindow = computed(() => {
+  if (!authStore.user || authStore.user.role !== 'instructor') return true // admins can always publish
+  const endDate = authStore.user.engagement_end_date
+  if (!endDate) return false
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const end = new Date(endDate)
+  return today <= end
+})
 
 const cohorts = ref<any[]>([])
 const selectedCohortId = ref<number | ''>('')
@@ -54,12 +66,8 @@ const editor = useEditor({
 // ── Initialization ──────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    // 1. Fetch active sessions (ENG-5 rule)
-    const sessionsRes = await getActiveSessions()
-    activeSessions.value = sessionsRes.data.data
-
-    // If no active session, lock the editor
-    if (!hasActiveSession.value && editor.value) {
+    // If past engagement window, lock the editor
+    if (!isWithinEngagementWindow.value && editor.value) {
       editor.value.setEditable(false)
     }
 
@@ -83,7 +91,7 @@ onMounted(async () => {
       }
     }
   } finally {
-    isLoadingSessions.value = false
+    isCheckingWindow.value = false
   }
 })
 
@@ -116,7 +124,7 @@ const clearDraft = () => {
 }
 
 const publishAnnouncement = async () => {
-  if (!hasActiveSession.value) return
+  if (!isWithinEngagementWindow.value) return
   if (!selectedCohortId.value) {
     publishError.value = 'Please select a cohort.'
     return
@@ -183,7 +191,7 @@ const formatDate = (dateStr: string) => {
 
     <!-- ENG-5 Warning Lock -->
     <div
-      v-if="!isLoadingSessions && !hasActiveSession"
+      v-if="!isCheckingWindow && !isWithinEngagementWindow"
       class="mb-6 rounded-md border border-amber-300 bg-amber-50 p-4"
     >
       <div class="flex items-center gap-3">
@@ -192,7 +200,7 @@ const formatDate = (dateStr: string) => {
         </svg>
         <div>
           <h3 class="font-sans text-base font-semibold text-amber-800">Publishing Disabled</h3>
-          <p class="font-sans text-sm text-amber-700">You can only post announcements during an active engagement session. You may still save drafts locally.</p>
+          <p class="font-sans text-sm text-amber-700">You can only post announcements while your instructor engagement window is active. You may still save drafts locally.</p>
         </div>
       </div>
     </div>
@@ -212,7 +220,7 @@ const formatDate = (dateStr: string) => {
             <label class="block text-sm font-medium text-neutral-700 mb-1">Target Cohort</label>
             <select
               v-model="selectedCohortId"
-              :disabled="!hasActiveSession"
+              :disabled="!isWithinEngagementWindow"
               class="w-full rounded-btn border-neutral-300 bg-neutral-50 px-3 py-2 text-sm shadow-sm focus:border-brand-red focus:ring-brand-red disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               <option value="" disabled>Select a cohort...</option>
@@ -228,13 +236,13 @@ const formatDate = (dateStr: string) => {
               v-model="title"
               type="text"
               placeholder="Announcement Title"
-              :disabled="!hasActiveSession"
+              :disabled="!isWithinEngagementWindow"
               class="w-full border-none bg-transparent font-serif text-3xl font-bold text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:ring-0 disabled:opacity-60"
             />
           </div>
 
           <!-- TipTap Toolbar -->
-          <div class="flex items-center gap-2 mb-2 bg-neutral-50 p-2 rounded-t-md border border-neutral-200 border-b-0" v-if="editor && hasActiveSession">
+          <div class="flex items-center gap-2 mb-2 bg-neutral-50 p-2 rounded-t-md border border-neutral-200 border-b-0" v-if="editor && isWithinEngagementWindow">
             <button
               @click="editor.chain().focus().toggleBold().run()"
               :class="{ 'bg-neutral-200 text-neutral-900': editor.isActive('bold'), 'text-neutral-600 hover:bg-neutral-200': !editor.isActive('bold') }"
@@ -265,7 +273,7 @@ const formatDate = (dateStr: string) => {
           <!-- Editor Content -->
           <div
             class="flex-1 border rounded-b-md border-neutral-200 bg-white"
-            :class="{ 'opacity-60 cursor-not-allowed bg-neutral-50 rounded-t-md': !hasActiveSession }"
+            :class="{ 'opacity-60 cursor-not-allowed bg-neutral-50 rounded-t-md': !isWithinEngagementWindow }"
           >
             <editor-content :editor="editor" />
           </div>
@@ -280,7 +288,7 @@ const formatDate = (dateStr: string) => {
             </button>
             <button
               @click="publishAnnouncement"
-              :disabled="!hasActiveSession || isPublishing"
+              :disabled="!isWithinEngagementWindow || isPublishing"
               class="bg-brand-red text-white px-6 py-2.5 rounded-btn font-semibold text-sm transition-all hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               <span v-if="isPublishing">Publishing...</span>

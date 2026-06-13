@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
+import { useCohortStore } from '@/stores/cohort.store'
 import { useScanner } from '@/composables/useScanner'
-import { getActiveSessions } from '@/api/modules/attendance.api'
+import { getActiveSessions, scanSessionQR } from '@/api/modules/attendance.api'
 import api from '@/api/axios'
 
 const authStore = useAuthStore()
+const cohortStore = useCohortStore()
 
 const {
   initScanner,
@@ -18,6 +20,15 @@ const isLoading = ref(true)
 
 // Scanner State
 const activeSessionId = ref<number | null>(null)
+
+// Manual Input State
+const manualStudentId = ref('')
+const isSubmittingManual = ref(false)
+const manualError = ref('')
+const manualSuccess = ref('')
+
+// Roster State
+const roster = ref<any[]>([])
 
 interface MappedSession { id?: number; session_date: string; start_time: string; end_time: string; type: string; cohort_name: string }
 
@@ -32,6 +43,54 @@ const hasNoSessions = computed(() =>
   pastSessions.value.length === 0
 )
 
+const fetchRoster = async () => {
+  if (!activeSessionId.value) return
+  try {
+    const res = await api.get(`/v1/sessions/${activeSessionId.value}/attendance`)
+    roster.value = res.data.data?.records || []
+  } catch (err) {
+    console.error("Failed to load session roster", err)
+  }
+}
+
+const submitManualAttendance = async () => {
+  if (!manualStudentId.value || !activeSessionId.value) return
+  
+  isSubmittingManual.value = true
+  manualError.value = ''
+  manualSuccess.value = ''
+  
+  try {
+    await scanSessionQR({
+      session_id: activeSessionId.value,
+      student_id: parseInt(manualStudentId.value)
+    })
+    
+    manualSuccess.value = 'Attendance recorded manually'
+    manualStudentId.value = ''
+    await fetchRoster()
+    
+    setTimeout(() => { manualSuccess.value = '' }, 3000)
+  } catch (err: any) {
+    manualError.value = err.response?.data?.message || 'Failed to record attendance manually'
+    setTimeout(() => { manualError.value = '' }, 3000)
+  } finally {
+    isSubmittingManual.value = false
+  }
+}
+
+const markAbsent = async (studentId: number) => {
+  if (!activeSessionId.value) return
+  try {
+    await api.post(`/v1/sessions/${activeSessionId.value}/mark-absent`, {
+      student_ids: [studentId]
+    })
+    await fetchRoster()
+  } catch (e) {
+    console.error('Failed to mark absent', e)
+  }
+}
+
 onMounted(async () => {
   try {
     // 1. Check for Active Sessions
@@ -40,6 +99,10 @@ onMounted(async () => {
     
     if (active.length > 0 && active[0]?.id) {
       activeSessionId.value = active[0].id
+      await fetchRoster()
+      
+      // Auto-refresh roster every 30 seconds
+      setInterval(fetchRoster, 30000)
     }
 
     // 2. Fetch Instructor Engagements for Upcoming & History
@@ -141,58 +204,158 @@ function formatTime(t: string) {
     </div>
 
     <!-- State: Scanner Active -->
-    <div v-else-if="activeSessionId" class="relative bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden max-w-4xl mx-auto w-full">
+    <div v-else-if="activeSessionId" class="grid grid-cols-1 lg:grid-cols-5 gap-6 max-w-7xl mx-auto w-full items-start">
       
-      <!-- Top banner indicating active session -->
-      <div class="bg-indigo-50 border-b border-indigo-100 px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <span class="relative flex h-3 w-3">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <span class="text-sm font-bold text-indigo-900">Live Session Active</span>
-        </div>
-        <div class="text-xs font-semibold text-indigo-700 bg-white px-2 py-1 rounded border border-indigo-200">
-            Session ID: {{ activeSessionId }}
+      <!-- Left Column: Scanner & Controls -->
+      <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <!-- Top banner indicating active session -->
+          <div class="bg-indigo-50 border-b border-indigo-100 px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="relative flex h-3.5 w-3.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <span class="text-base font-bold text-indigo-900 tracking-tight">Live Session Active</span>
+            </div>
+            <div class="text-sm font-bold text-indigo-700 bg-white px-3 py-1 rounded-md border border-indigo-200 shadow-sm">
+                Session ID: {{ activeSessionId }}
+            </div>
+          </div>
+
+          <!-- Manual Scan Fallback -->
+          <div class="p-5 bg-slate-50 border-b border-slate-200">
+            <label class="block text-sm font-bold text-slate-700 mb-2">Manual Attendance Entry</label>
+            <form @submit.prevent="submitManualAttendance" class="flex gap-3">
+              <input 
+                v-model="manualStudentId" 
+                type="text" 
+                placeholder="Enter Student ID" 
+                class="flex-1 bg-white border border-slate-300 rounded-lg py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all"
+                :disabled="isSubmittingManual"
+              />
+              <button 
+                type="submit" 
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 shadow-sm whitespace-nowrap"
+                :disabled="isSubmittingManual || !manualStudentId"
+              >
+                <span v-if="isSubmittingManual">Recording...</span>
+                <span v-else>Submit</span>
+              </button>
+            </form>
+            <div v-if="manualError" class="mt-2.5 text-sm font-medium text-rose-600 flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{{ manualError }}</div>
+            <div v-if="manualSuccess" class="mt-2.5 text-sm font-medium text-emerald-600 flex items-center gap-1.5"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>{{ manualSuccess }}</div>
+          </div>
+
+          <!-- Video Feed Area -->
+          <div class="w-full bg-slate-900 relative overflow-hidden flex items-center justify-center min-h-[400px]">
+            <div id="reader" class="w-full h-full text-white [&>img]:hidden [&>div]:border-none"></div>
+
+            <!-- Success Overlay -->
+            <div v-if="successMsg" class="absolute inset-0 bg-emerald-500/95 flex flex-col items-center justify-center text-white z-20 transition-all duration-300 backdrop-blur-sm">
+              <div class="bg-white/20 p-4 rounded-full mb-4">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 class="text-3xl font-black mb-2 tracking-tight">Success!</h2>
+              <p class="text-lg text-emerald-50 font-medium">{{ successMsg }}</p>
+            </div>
+
+            <!-- Error Overlay -->
+            <div v-if="errorMsg" class="absolute inset-0 bg-rose-500/95 flex flex-col items-center justify-center text-white z-20 transition-all duration-300 p-6 text-center backdrop-blur-sm">
+              <div class="bg-white/20 p-4 rounded-full mb-4">
+                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 class="text-3xl font-black mb-2 tracking-tight">Scan Failed</h2>
+              <p class="text-lg text-rose-50 font-medium">{{ errorMsg }}</p>
+            </div>
+          </div>
+          
+          <!-- Footer Info -->
+          <div class="p-5 bg-slate-50 border-t border-slate-200">
+            <div v-if="isScanning" class="text-center">
+              <p class="text-sm text-slate-800 font-bold flex items-center justify-center gap-2 mb-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Camera Active
+              </p>
+              <p class="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                Show student badge to record attendance. If the screen glare makes it hard to scan, tilt the phone slightly.
+              </p>
+            </div>
+            <div v-else class="text-center">
+              <p class="text-sm text-slate-400 font-medium flex items-center justify-center gap-2">
+                <svg class="w-4 h-4 animate-spin text-slate-300" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Processing scan...
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Video Feed Area -->
-      <div class="aspect-square md:aspect-video w-full bg-slate-900 relative">
-        <div id="reader" class="w-full h-full text-white [&>img]:hidden [&>div]:border-none"></div>
+      <!-- Right Column: Live Roster Table -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full max-h-[800px]">
+          <div class="px-5 py-4 bg-slate-50 flex items-center justify-between border-b border-slate-200 rounded-t-2xl">
+            <div>
+              <h3 class="font-bold text-slate-800 tracking-tight text-lg">Live Roster</h3>
+              <p class="text-xs text-slate-500 mt-0.5">{{ roster.length }} Students Enrolled</p>
+            </div>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto p-2">
+            <div v-if="roster.length === 0" class="flex flex-col items-center justify-center h-48 text-slate-400">
+              <svg class="w-10 h-10 mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              <p class="text-sm font-medium">Loading roster data...</p>
+            </div>
 
-        <!-- Success Overlay -->
-        <div v-if="successMsg" class="absolute inset-0 bg-emerald-500/90 flex flex-col items-center justify-center text-white z-10 transition-opacity duration-300">
-          <svg class="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h2 class="text-3xl font-bold mb-2">Success!</h2>
-          <p class="text-lg text-emerald-50 font-medium">{{ successMsg }}</p>
-        </div>
+            <div class="space-y-2">
+              <div v-for="entry in roster" :key="entry.student.id" class="group flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm border border-indigo-100 shrink-0">
+                    {{ entry.student.name.substring(0,2).toUpperCase() }}
+                  </div>
+                  <div>
+                    <button @click="cohortStore.openStudentProfile(entry.student.id)" class="text-sm font-bold text-slate-800 hover:text-indigo-600 text-left transition-colors">
+                      {{ entry.student.name }}
+                    </button>
+                    <div class="text-xs text-slate-400 font-medium mt-0.5">ID: {{ entry.student.id }}</div>
+                  </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-2">
+                  <span v-if="entry.record && entry.record.status === 'present'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Present
+                  </span>
+                  <span v-else-if="entry.record && entry.record.status === 'absent'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Absent
+                  </span>
+                  <span v-else-if="entry.excuse && entry.excuse.status === 'approved'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Excused
+                  </span>
+                  <span v-else-if="entry.excuse && entry.excuse.status === 'requested'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending
+                  </span>
+                  <span v-else class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                    Waiting
+                  </span>
 
-        <!-- Error Overlay -->
-        <div v-if="errorMsg" class="absolute inset-0 bg-rose-500/90 flex flex-col items-center justify-center text-white z-10 transition-opacity duration-300 p-6 text-center">
-          <svg class="w-24 h-24 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h2 class="text-3xl font-bold mb-2">Scan Failed</h2>
-          <p class="text-lg text-rose-50 font-medium">{{ errorMsg }}</p>
-        </div>
-      </div>
-      
-      <!-- Footer Info -->
-      <div class="p-4 bg-slate-50 border-t border-slate-200 text-center">
-        <div v-if="isScanning">
-          <p class="text-sm text-slate-800 font-bold flex items-center justify-center gap-2 mb-1">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Camera Active - Show student badge to record attendance
-          </p>
-          <p class="text-xs text-slate-500">
-            <strong>Tip:</strong> If the screen glare makes it hard to scan, tilt the phone slightly or move it to the edge of the camera view. The scanner reads the entire frame!
-          </p>
-        </div>
-        <div v-else>
-          <p class="text-sm text-slate-400 font-medium">Processing scan... Please wait.</p>
+                  <button 
+                    v-if="!entry.record && !entry.excuse"
+                    @click="markAbsent(entry.student.id)" 
+                    class="text-[11px] bg-white text-rose-600 hover:bg-rose-50 hover:text-rose-700 px-2 py-0.5 rounded border border-rose-200 font-bold transition-colors opacity-0 group-hover:opacity-100 uppercase tracking-wide"
+                  >
+                    Mark Absent
+                  </button>
+                  <span v-else-if="entry.record?.arrived_at" class="text-[10px] font-bold text-slate-400">
+                    {{ formatTime(entry.record.arrived_at.split('T')[1].substring(0,5)) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

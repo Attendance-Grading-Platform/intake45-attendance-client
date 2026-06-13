@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { getSubmissionQueue, getSubmissionStats, type SubmissionQueueParams } from '@/api/modules/submission.api'
+import { useCohortStore } from '@/stores/cohort.store'
+
+const cohortStore = useCohortStore()
 
 // ── State ───────────────────────────────────────────────────────────────
 const isLoadingStats = ref(true)
@@ -240,7 +243,9 @@ const formatDate = (dateString: string) => {
               <tr v-for="item in queueData" :key="item.id" class="hover:bg-neutral-50 transition-colors group">
                 <!-- Student Name -->
                 <td class="py-4 px-6 font-sans text-sm font-semibold text-neutral-900">
-                  {{ item.student?.name || 'Unknown Student' }}
+                  <button @click="cohortStore.openStudentProfile(item.student?.id)" class="text-indigo-600 hover:text-indigo-800 hover:underline text-left">
+                    {{ item.student?.name || 'Unknown Student' }}
+                  </button>
                 </td>
                 <!-- Lab Group Pill -->
                 <td class="py-4 px-6">
@@ -272,12 +277,22 @@ const formatDate = (dateString: string) => {
                 </td>
                 <!-- Actions -->
                 <td class="py-4 px-6 text-right">
-                  <button
-                    @click="handleGrade(item)"
-                    class="font-sans text-sm font-bold text-brand-red hover:text-red-800 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  >
-                    {{ item.grade ? 'Re-grade' : 'Grade' }}
-                  </button>
+                  <div class="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <!-- Submission Links -->
+                    <a v-if="item.submission_url" :href="item.submission_url" target="_blank" class="text-neutral-500 hover:text-indigo-600 transition-colors" title="View Submission Link">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                    <a v-if="item.file_path" :href="`/api/v1/submissions/download?path=${encodeURIComponent(item.file_path)}`" download class="text-neutral-500 hover:text-indigo-600 transition-colors" title="Download File">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </a>
+                    
+                    <button
+                      @click="handleGrade(item)"
+                      class="font-sans text-sm font-bold text-brand-red hover:text-red-800 transition-colors"
+                    >
+                      {{ item.grade ? 'Re-grade' : 'Grade' }}
+                    </button>
+                  </div>
                 </td>
               </tr>
             </template>

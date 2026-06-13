@@ -2,11 +2,11 @@ import axios, { type AxiosInstance } from 'axios'
 
 const api: AxiosInstance = axios.create({
     // 🚨 DEPLOYMENT NOTE: THE VITE_API_URL ENVIRONMENT VARIABLE 🚨
-    // Locally: This evaluates to '' (empty string), which forces requests to hit your Vite proxy above.
+    // Locally: This evaluates to '/api', which forces requests to hit your Vite proxy above.
     // In Production: The proxy is gone. You MUST inject `VITE_API_URL=https://api.yourdomain.com` 
     // into your build environment (e.g., GitHub Actions, Vercel secrets, or Docker build args) 
     // BEFORE running `npm run build`. Vite will permanently bake that URL into the final JS files.
-    baseURL: (import.meta.env.VITE_API_URL as string) || '',
+    baseURL: (import.meta.env.VITE_API_URL as string) || '/api',
 
     // DEPLOYMENT NOTE: This enforces strict CORS policies in production.
     // Your Laravel backend MUST explicitly whitelist your frontend domain in `config/cors.php`.

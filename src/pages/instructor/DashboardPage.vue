@@ -21,7 +21,7 @@ const router = useRouter()
 const isLoading      = ref(true)
 const error          = ref<string | null>(null)
 const dashboard      = ref<InstructorDashboardPayload | null>(null)
-const activeSessions = ref<{ id: number; start_time?: string; end_time?: string; engagement?: { type?: string } }[]>([])
+const activeSessions = ref<{ id: number; start_time?: string; end_time?: string; room?: string; engagement?: { type?: string } }[]>([])
 
 onMounted(async () => {
   try {
@@ -130,12 +130,13 @@ function launchScanner() {
                 </span>
                 <span class="font-sans text-label uppercase tracking-widest text-success font-medium">Live Session</span>
               </div>
-              <h2 class="font-serif text-h2 text-neutral-900 mb-2">Session #{{ currentSession?.id }}</h2>
+              <h2 class="font-serif text-h2 text-neutral-900 mb-2">Session #{{ currentSession?.id }} <span v-if="currentSession?.room" class="text-neutral-400 text-lg ml-2 font-sans font-medium">— {{ currentSession.room }}</span></h2>
               <p class="font-sans text-base text-neutral-600">
                 {{ currentSession?.start_time?.slice(0, 5) }} — {{ currentSession?.end_time?.slice(0, 5) }}
                 <span v-if="currentSession?.engagement?.type" class="ml-2 px-2 py-0.5 rounded-badge text-sm font-medium bg-success/10 text-success">
                   {{ currentSession.engagement.type }}
                 </span>
+                <span v-if="currentSession?.room" class="ml-2 text-sm text-neutral-500 font-medium">📍 Room {{ currentSession.room }}</span>
               </p>
             </div>
             <button
@@ -149,6 +150,25 @@ function launchScanner() {
               </svg>
               Launch QR Scanner
             </button>
+          </div>
+        </template>
+        <template v-else-if="dashboard?.next_session">
+          <div class="flex items-start justify-between flex-wrap gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span class="font-sans text-label uppercase tracking-widest text-neutral-500 font-medium">Upcoming Session</span>
+              </div>
+              <h2 class="font-serif text-h2 text-neutral-900 mb-2">Session #{{ dashboard.next_session.id }}</h2>
+              <p class="font-sans text-base text-neutral-600">
+                {{ dashboard.next_session.session_date }} | {{ dashboard.next_session.start_time?.slice(0, 5) }} — {{ dashboard.next_session.end_time?.slice(0, 5) }}
+                <span v-if="dashboard.next_session.engagement?.type" class="ml-2 px-2 py-0.5 rounded-badge text-sm font-medium bg-neutral-100 text-neutral-600 border border-neutral-200">
+                  {{ dashboard.next_session.engagement.type }}
+                </span>
+              </p>
+            </div>
           </div>
         </template>
         <template v-else>

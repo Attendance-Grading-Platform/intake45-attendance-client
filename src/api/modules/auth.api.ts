@@ -4,8 +4,10 @@ import axios from 'axios'
 import type { ApiResponse } from '@/types/api.types'
 import type { LoginCredentials, AuthResponse } from '@/types/auth.types'
 
-export const getCsrfCookie = () =>
-    axios.get(`${import.meta.env.VITE_API_URL.replace('/api', '')}/sanctum/csrf-cookie`, { withCredentials: true })
+export const getCsrfCookie = () => {
+    const apiUrl = (import.meta.env.VITE_API_URL as string) || ''
+    return axios.get(`${apiUrl.replace('/api', '')}/sanctum/csrf-cookie`, { withCredentials: true })
+}
 
 export const login = (data: LoginCredentials) =>
     api.post<ApiResponse<AuthResponse>>('/auth/login', data)

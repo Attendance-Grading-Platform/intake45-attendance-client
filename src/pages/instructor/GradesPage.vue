@@ -1,22 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import * as gradeApi from '@/api/modules/grade.api'
 import type { BatchGradeItem } from '@/api/modules/grade.api'
 import { useGradeStore } from '@/stores/grade.store'
+import { useCohortStore } from '@/stores/cohort.store'
 
 const gradeStore = useGradeStore()
+const cohortStore = useCohortStore()
 
 interface GradeComponent {
   id: number
   name: string
   max: number
   weight: number
+  isLocked: boolean
+}
+
+interface ComponentScore {
+  score: number | null
+  original_value?: number | null
+  override_note?: string | null
+  is_overridden?: boolean
 }
 
 interface StudentGradeRow {
   id: number
   name: string
-  scores: Record<number, number | null>
+  scores: Record<number, ComponentScore>
 }
 
 const components = ref<GradeComponent[]>([])
@@ -29,9 +39,20 @@ const saveSuccess = ref(false)
 const saveError = ref(false)
 
 function isInvalid(score: number | null, max: number): boolean {
-  if (score === null) return false
+  if (score === null || score === undefined) return false
   return score < 0 || score > max
 }
+
+const hasInvalidInput = computed(() => {
+  for (const student of students.value) {
+    for (const comp of components.value) {
+      if (isInvalid(student.scores[comp.id]?.score ?? null, comp.max)) {
+        return true
+      }
+    }
+  }
+  return false
+})
 
 function parseScore(raw: string): number | null {
   if (raw === '') return null
@@ -42,7 +63,7 @@ function parseScore(raw: string): number | null {
 function computeWeightedTotal(student: StudentGradeRow): number {
   let total = 0
   for (const comp of components.value) {
-    const score = student.scores[comp.id] ?? null
+    const score = student.scores[comp.id]?.score ?? null
     if (score === null || comp.max === 0) continue
     total += (score / comp.max) * comp.weight
   }
@@ -65,11 +86,13 @@ onMounted(async () => {
     for (const g of records) {
       const cid = g.course_component?.id
       if (cid !== undefined && !compMap.has(cid)) {
+        const type = g.course_component.type || ''
         compMap.set(cid, {
           id: cid,
-          name: g.course_component.type ?? `Component ${cid}`,
+          name: type || `Component ${cid}`,
           max: g.raw_max,
           weight: g.course_component.weight ?? 0,
+          isLocked: type === 'final_exam' || type === 'project'
         })
       }
     }
@@ -88,7 +111,12 @@ onMounted(async () => {
           scores: {},
         })
       }
-      studentMap.get(sid)!.scores[cid] = g.raw_score
+      studentMap.get(sid)!.scores[cid] = {
+        score: g.raw_score,
+        original_value: g.original_value,
+        override_note: g.override_note,
+        is_overridden: g.is_overridden
+      }
     }
     students.value = Array.from(studentMap.values())
   } catch (err) {
@@ -100,6 +128,7 @@ onMounted(async () => {
 })
 
 async function handleSave() {
+  if (hasInvalidInput.value) return
   isSaving.value = true
   saveSuccess.value = false
   saveError.value = false
@@ -107,12 +136,19 @@ async function handleSave() {
     const payload: BatchGradeItem[] = []
     for (const student of students.value) {
       for (const comp of components.value) {
-        const score = student.scores[comp.id]
+        if (comp.isLocked) continue // Skip saving locked inputs
+        const score = student.scores[comp.id]?.score
         if (score !== null && score !== undefined && !isNaN(score)) {
           payload.push({ student_id: student.id, course_component_id: comp.id, raw_score: score, raw_max: comp.max })
         }
       }
     }
+    
+    if (payload.length === 0) {
+      isSaving.value = false
+      return // Nothing to save
+    }
+
     const { failed } = await gradeStore.batchSaveGrades(payload)
     if (failed === 0) {
       saveSuccess.value = true
@@ -157,7 +193,7 @@ async function handleSave() {
           </Transition>
           <button
             @click="handleSave"
-            :disabled="isSaving || isLoading || students.length === 0"
+            :disabled="isSaving || isLoading || students.length === 0 || hasInvalidInput"
             class="bg-[#940002] text-white px-8 py-3 rounded-md font-bold text-[11px] uppercase tracking-[1px] hover:opacity-90 transition-all disabled:opacity-50"
           >
             {{ isSaving ? 'Synchronizing...' : 'Save All Changes' }}
@@ -193,10 +229,11 @@ async function handleSave() {
                 <th
                   v-for="comp in components"
                   :key="comp.id"
-                  class="py-4 px-6 text-center border-l border-[#C9BDB8]/40"
+                  class="py-4 px-6 text-center border-l border-[#C9BDB8]/40 relative"
                 >
-                  <p class="font-bold text-[11px] text-[#1b1b1b] uppercase tracking-[0.5px] truncate max-w-37.5">
-                    {{ comp.name }}
+                  <p class="font-bold text-[11px] text-[#1b1b1b] uppercase tracking-[0.5px] truncate max-w-37.5 inline-flex items-center gap-1 justify-center">
+                    <svg v-if="comp.isLocked" class="w-3 h-3 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    {{ comp.name.replace('_', ' ') }}
                   </p>
                   <p class="text-[9px] text-[#4c4546] font-mono mt-1">MAX: {{ comp.max }} pts · {{ comp.weight }}%</p>
                 </th>
@@ -208,25 +245,41 @@ async function handleSave() {
             <tbody class="divide-y divide-[#C9BDB8]/40">
               <tr v-for="student in students" :key="student.id" class="hover:bg-[#F5EDEA]/30 transition-colors group">
                 <td class="py-3 px-6 font-medium text-[14px] text-[#1b1b1b] sticky left-0 bg-white group-hover:bg-[#F5EDEA]/30 z-10">
-                  {{ student.name }}
+                  <button @click="cohortStore.openStudentProfile(student.id)" class="text-indigo-600 hover:text-indigo-800 hover:underline text-left">
+                    {{ student.name }}
+                  </button>
                 </td>
 
                 <td
                   v-for="comp in components"
                   :key="comp.id"
-                  class="p-2 border-l border-[#C9BDB8]/20"
+                  class="p-2 border-l border-[#C9BDB8]/20 bg-white relative"
+                  :class="{'bg-slate-50': comp.isLocked}"
                 >
-                  <div class="relative group/input">
+                  <div class="relative group/input flex justify-center items-center">
                     <input
                       type="number"
-                      :value="student.scores[comp.id] ?? ''"
-                      @input="student.scores[comp.id] = parseScore(($event.target as HTMLInputElement).value)"
-                      class="w-full h-10 text-center border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-[#940002] rounded-sm font-mono text-[14px] transition-all"
-                      :class="{ 'text-red-600 font-bold bg-red-50': isInvalid(student.scores[comp.id] ?? null, comp.max) }"
+                      :value="student.scores[comp.id]?.score ?? ''"
+                      @input="student.scores[comp.id].score = parseScore(($event.target as HTMLInputElement).value)"
+                      class="w-full h-10 text-center border-0 bg-transparent focus:bg-white focus:ring-1 focus:ring-[#940002] rounded-sm font-mono text-[14px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="{ 
+                        'text-red-600 font-bold bg-red-50': isInvalid(student.scores[comp.id]?.score ?? null, comp.max),
+                        'line-through text-slate-400': student.scores[comp.id]?.is_overridden
+                      }"
                       placeholder="--"
+                      :readonly="comp.isLocked || student.scores[comp.id]?.is_overridden"
+                      :disabled="comp.isLocked"
+                      :title="comp.isLocked ? 'Only Track Admins can edit this component.' : ''"
                     />
+                    
                     <span
-                      v-if="isInvalid(student.scores[comp.id] ?? null, comp.max)"
+                      v-if="student.scores[comp.id]?.is_overridden"
+                      class="absolute top-1 right-2 w-2 h-2 rounded-full bg-amber-500"
+                      :title="'Overridden to: ' + student.scores[comp.id]?.score + ' (' + student.scores[comp.id]?.override_note + ')'"
+                    ></span>
+
+                    <span
+                      v-if="isInvalid(student.scores[comp.id]?.score ?? null, comp.max)"
                       class="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[9px] px-2 py-0.5 rounded-full z-20 whitespace-nowrap"
                     >
                       Exceeds Max!
