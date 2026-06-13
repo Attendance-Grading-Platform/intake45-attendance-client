@@ -21,9 +21,6 @@ const api: AxiosInstance = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-    // DEPLOYMENT NOTE: `localStorage` works perfectly in production. Just ensure 
-    // you are serving your site over HTTPS, otherwise browser security policies 
-    // might block certain storage mechanisms or API requests.
     const token = localStorage.getItem('token')
     if (token) config.headers.Authorization = `Bearer ${token}`
     return config
@@ -34,9 +31,6 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token')
-            // DEPLOYMENT NOTE: Hardcoded redirects like this will trigger a full page reload.
-            // If you want a smoother Single Page Application (SPA) experience, consider 
-            // importing your Vue Router here and using `router.push('/login')` instead.
             window.location.href = '/login'
         }
         return Promise.reject(error)

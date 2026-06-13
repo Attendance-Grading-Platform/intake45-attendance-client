@@ -2,15 +2,9 @@ import { ref, computed } from 'vue'
 import { getExcuses, createExcuse, type ExcuseRequest } from '@/api/modules/excuse.api'
 import api from '@/api/axios'
 
-interface AbsentSession {
-    id: number
-    session_date: string
-    engagement?: { type?: string }
-}
-
 export function useExcuses() {
     const excuses = ref<ExcuseRequest[]>([])
-    const absentSessions = ref<AbsentSession[]>([])
+    const absentSessions = ref<unknown[]>([])
     const isLoading = ref(false)
     const isSubmitting = ref(false)
     const errorMsg = ref<string | null>(null)

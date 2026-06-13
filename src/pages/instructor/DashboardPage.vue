@@ -1,20 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Doughnut } from 'vue-chartjs'
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js'
+import GradeDistributionChart from '@/components/charts/GradeDistributionChart.vue'
 import {
   getInstructorDashboard,
   type InstructorDashboardPayload,
 } from '@/api/modules/dashboard.api'
 import { getActiveSessions } from '@/api/modules/attendance.api'
-
-ChartJS.register(ArcElement, Tooltip, Legend)
 
 const router = useRouter()
 
@@ -23,6 +15,7 @@ const error          = ref<string | null>(null)
 const dashboard      = ref<InstructorDashboardPayload | null>(null)
 const activeSessions = ref<{ id: number; start_time?: string; end_time?: string; room?: string; engagement?: { type?: string } }[]>([])
 
+// ── Fetch all data on mount ──────────────────────
 onMounted(async () => {
   try {
     const [dashRes, sessionsRes] = await Promise.all([
@@ -31,50 +24,17 @@ onMounted(async () => {
     ])
     dashboard.value      = dashRes.data.data
     activeSessions.value = sessionsRes.data.data
-  } catch (err: unknown) {
-    const axiosMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-    error.value = axiosMsg ?? 'Failed to load dashboard data. Please try again.'
+  } catch (err: any) {
+    error.value =
+      err.response?.data?.message || 'Failed to load dashboard data. Please try again.'
   } finally {
     isLoading.value = false
   }
 })
 
+// ── Computed helpers ─────────────────────────────
 const hasActiveSession = computed(() => activeSessions.value.length > 0)
 const currentSession   = computed(() => activeSessions.value[0] ?? null)
-
-const chartData = computed(() => {
-  const dist = dashboard.value?.grade_distribution
-  if (!dist) return null
-  return {
-    labels: Object.keys(dist),
-    datasets: [{
-      data: Object.values(dist),
-      backgroundColor: ['#059669', '#0891b2', '#2563eb', '#d97706', '#dc2626'],
-      borderColor: '#ffffff',
-      borderWidth: 2,
-      hoverOffset: 8,
-    }],
-  }
-})
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: '60%',
-  plugins: {
-    legend: {
-      position: 'bottom' as const,
-      labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10, font: { family: 'DM Sans, sans-serif', size: 12 } },
-    },
-    tooltip: {
-      backgroundColor: '#1e293b',
-      titleFont: { family: 'DM Sans, sans-serif', size: 13 },
-      bodyFont:  { family: 'DM Sans, sans-serif', size: 12 },
-      padding: 10,
-      cornerRadius: 6,
-    },
-  },
-}
 
 function launchScanner() {
   router.push('/instructor/attendance')
@@ -84,16 +44,23 @@ function launchScanner() {
 <template>
   <div class="p-6 min-h-[calc(100vh-56px)]">
 
+    <!-- ─── Page Header ─────────────────────────── -->
     <div class="mb-8">
-      <h3 class="font-sans text-label uppercase tracking-widest text-neutral-500 mb-1">Instructor Portal</h3>
+      <h3 class="font-sans text-label uppercase tracking-widest text-neutral-500 mb-1">
+        Instructor Portal
+      </h3>
       <h1 class="font-serif text-h1 text-neutral-900">Dashboard</h1>
     </div>
 
-    <!-- Loading Skeleton -->
+    <!-- ─── Loading Skeleton ────────────────────── -->
     <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
-        v-for="i in 4" :key="i"
-        :class="['rounded-card border border-neutral-300 bg-neutral-0 p-6 animate-pulse', i === 1 ? 'lg:col-span-2 min-h-[200px]' : 'min-h-[180px]']"
+        v-for="i in 4"
+        :key="i"
+        :class="[
+          'rounded-card border border-neutral-300 bg-neutral-0 p-6 animate-pulse',
+          i === 1 ? 'lg:col-span-2 min-h-[200px]' : 'min-h-[180px]'
+        ]"
       >
         <div class="h-4 bg-neutral-200 rounded w-1/3 mb-4" />
         <div class="h-8 bg-neutral-200 rounded w-1/2 mb-3" />
@@ -101,16 +68,24 @@ function launchScanner() {
       </div>
     </div>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="rounded-card border border-danger bg-danger-light p-8 text-center max-w-lg mx-auto">
+    <!-- ─── Error State ─────────────────────────── -->
+    <div
+      v-else-if="error"
+      class="rounded-card border border-danger bg-danger-light p-8 text-center max-w-lg mx-auto"
+    >
+      <svg class="mx-auto mb-4 h-10 w-10 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+      </svg>
       <p class="font-sans text-base text-danger font-medium mb-2">Something went wrong</p>
       <p class="font-sans text-sm text-neutral-600">{{ error }}</p>
     </div>
 
-    <!-- Bento Grid -->
+    <!-- ─── Bento Grid ──────────────────────────── -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-      <!-- Widget 1 — Scanner Quick-Launch -->
+      <!-- ═══════════════════════════════════════════
+           Widget 1 — Scanner Quick-Launch (spans 2 cols)
+           ═══════════════════════════════════════════ -->
       <div
         id="widget-scanner"
         :class="[
@@ -120,6 +95,7 @@ function launchScanner() {
             : 'border-neutral-300 bg-neutral-100'
         ]"
       >
+        <!-- Active Session State -->
         <template v-if="hasActiveSession">
           <div class="flex items-start justify-between flex-wrap gap-4">
             <div>
@@ -128,7 +104,9 @@ function launchScanner() {
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
                   <span class="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
                 </span>
-                <span class="font-sans text-label uppercase tracking-widest text-success font-medium">Live Session</span>
+                <span class="font-sans text-label uppercase tracking-widest text-success font-medium">
+                  Live Session
+                </span>
               </div>
               <h2 class="font-serif text-h2 text-neutral-900 mb-2">Session #{{ currentSession?.id }} <span v-if="currentSession?.room" class="text-neutral-400 text-lg ml-2 font-sans font-medium">— {{ currentSession.room }}</span></h2>
               <p class="font-sans text-base text-neutral-600">
@@ -142,7 +120,9 @@ function launchScanner() {
             <button
               id="btn-launch-scanner"
               @click="launchScanner"
-              class="h-btn px-6 rounded-btn bg-success text-white font-sans text-base font-medium flex items-center gap-2 hover:brightness-110 active:scale-[0.97] transition-all duration-fast cursor-pointer shadow-sm"
+              class="h-btn px-6 rounded-btn bg-success text-white font-sans text-base font-medium
+                     flex items-center gap-2 hover:brightness-110 active:scale-[0.97]
+                     transition-all duration-fast cursor-pointer shadow-sm"
             >
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Z" />
@@ -184,24 +164,40 @@ function launchScanner() {
         </template>
       </div>
 
-      <!-- Widget 2 — Delivered Hours -->
-      <div id="widget-delivered-hours" class="rounded-card border border-neutral-300 bg-neutral-0 p-6 flex flex-col justify-between">
+      <!-- ═══════════════════════════════════════════
+           Widget 2 — Delivered Hours (stat card)
+           ═══════════════════════════════════════════ -->
+      <div
+        id="widget-delivered-hours"
+        class="rounded-card border border-neutral-300 bg-neutral-0 p-6 flex flex-col justify-between"
+      >
         <div class="flex items-center gap-3 mb-4">
           <div class="h-10 w-10 rounded-full bg-info-light flex items-center justify-center">
             <svg class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
           </div>
-          <span class="font-sans text-label uppercase tracking-widest text-neutral-500">Hours Delivered</span>
+          <span class="font-sans text-label uppercase tracking-widest text-neutral-500">
+            Hours Delivered
+          </span>
         </div>
         <div>
-          <p class="font-sans text-data-xl text-neutral-900 leading-none mb-1">{{ dashboard?.delivered_hours ?? 0 }}</p>
-          <p class="font-sans text-sm text-neutral-500">Total this semester</p>
+          <p class="font-sans text-data-xl text-neutral-900 leading-none mb-1">
+            {{ dashboard?.delivered_hours ?? 0 }}
+          </p>
+          <p class="font-sans text-sm text-neutral-500">
+            Total this semester
+          </p>
         </div>
       </div>
 
-      <!-- Widget 3 — Assigned Lab Groups -->
-      <div id="widget-lab-groups" class="lg:col-span-2 rounded-card border border-neutral-300 bg-neutral-0 p-6">
+      <!-- ═══════════════════════════════════════════
+           Widget 3 — Assigned Lab Groups Roster
+           ═══════════════════════════════════════════ -->
+      <div
+        id="widget-lab-groups"
+        class="lg:col-span-2 rounded-card border border-neutral-300 bg-neutral-0 p-6"
+      >
         <div class="flex items-center gap-3 mb-5">
           <div class="h-10 w-10 rounded-full bg-warning-light flex items-center justify-center">
             <svg class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -210,6 +206,7 @@ function launchScanner() {
           </div>
           <h3 class="font-sans text-h3 text-neutral-900">Assigned Lab Groups</h3>
         </div>
+
         <div v-if="dashboard?.lab_groups?.length" class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
@@ -225,13 +222,22 @@ function launchScanner() {
                 :key="group.id"
                 class="border-b border-neutral-200 last:border-b-0 hover:bg-neutral-50 transition-colors duration-fast"
               >
-                <td class="py-4 px-4 font-sans text-base text-neutral-800 font-medium">{{ group.name }}</td>
-                <td class="py-4 px-4 font-sans text-sm text-neutral-600">{{ group.track_name }}</td>
+                <td class="py-4 px-4 font-sans text-base text-neutral-800 font-medium">
+                  {{ group.name }}
+                </td>
+                <td class="py-4 px-4 font-sans text-sm text-neutral-600">
+                  {{ group.track_name }}
+                </td>
                 <td class="py-4 px-4 text-right">
                   <router-link
                     :to="`/instructor/grades?group_id=${group.id}`"
-                    class="inline-flex items-center gap-1.5 h-btn-sm px-4 rounded-btn bg-neutral-900 text-white font-sans text-sm font-medium hover:bg-neutral-800 active:scale-[0.97] transition-all duration-fast"
+                    class="inline-flex items-center gap-1.5 h-btn-sm px-4 rounded-btn
+                           bg-neutral-900 text-white font-sans text-sm font-medium
+                           hover:bg-neutral-800 active:scale-[0.97] transition-all duration-fast"
                   >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
                     Grade Submissions
                   </router-link>
                 </td>
@@ -239,13 +245,19 @@ function launchScanner() {
             </tbody>
           </table>
         </div>
+
         <div v-else class="py-8 text-center">
           <p class="font-sans text-sm text-neutral-400">No lab groups assigned to you yet.</p>
         </div>
       </div>
 
-      <!-- Widget 4 — Grade Distribution Chart -->
-      <div id="widget-grade-chart" class="rounded-card border border-neutral-300 bg-neutral-0 p-6 flex flex-col">
+      <!-- ═══════════════════════════════════════════
+           Widget 4 — Grade Distribution Chart
+           ═══════════════════════════════════════════ -->
+      <div
+        id="widget-grade-chart"
+        class="rounded-card border border-neutral-300 bg-neutral-0 p-6 flex flex-col"
+      >
         <div class="flex items-center gap-3 mb-5">
           <div class="h-10 w-10 rounded-full bg-danger-light flex items-center justify-center">
             <svg class="h-5 w-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -255,12 +267,11 @@ function launchScanner() {
           </div>
           <h3 class="font-sans text-h3 text-neutral-900">Grade Distribution</h3>
         </div>
-        <div v-if="chartData" class="flex-1 flex items-center justify-center min-h-[220px]">
-          <Doughnut :data="chartData" :options="chartOptions" />
-        </div>
-        <div v-else class="flex-1 flex items-center justify-center">
-          <p class="font-sans text-sm text-neutral-400">No grade data available.</p>
-        </div>
+
+        <GradeDistributionChart
+          class="flex-1"
+          :distribution="dashboard?.grade_distribution"
+        />
       </div>
 
     </div>

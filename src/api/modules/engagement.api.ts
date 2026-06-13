@@ -29,7 +29,7 @@ interface ApiEngagement {
     lab_groups?:     Array<{ id: number; name: string }>
 }
 
-function mapEngagement(raw: ApiEngagement): Engagement {
+function mapEngagement(raw: ApiEngagement & { sessions?: Engagement['sessions'] }): Engagement {
     return {
         id:                raw.id,
         type:              raw.type,
@@ -38,6 +38,7 @@ function mapEngagement(raw: ApiEngagement): Engagement {
         end_date:          raw.end_date,
         hours_per_session: raw.scheduled_hours,
         lab_groups:        raw.lab_groups ?? [],
+        sessions:          raw.sessions ?? [],
     }
 }
 
@@ -84,7 +85,7 @@ function toApiUpdateBody(data: UpdateEngagementPayload) {
 }
 
 export const listCohortEngagements = async (cohortId: number): Promise<Engagement[]> => {
-    const res = await api.get<ApiResponse<ApiEngagement[]>>('/v1/engagements', {
+    const res = await api.get<ApiResponse<Array<ApiEngagement & { sessions?: Engagement['sessions'] }>>>('/v1/engagements', {
         params: { cohort_id: cohortId },
     })
 

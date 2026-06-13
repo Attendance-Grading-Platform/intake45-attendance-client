@@ -7,9 +7,9 @@ export const billingApi = {
      * Get billing rollup for a cohort
      * 404 means rollup not yet generated
      */
-    getRollup(cohortId: number) {
+    getRollup(cohortId?: number) {
         return api.get<ApiResponse<BillingRollup>>(`/v1/billing/rollup`, {
-            params: { cohort_id: cohortId }
+            params: cohortId ? { cohort_id: cohortId } : undefined,
         })
     },
 

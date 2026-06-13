@@ -8,9 +8,6 @@ export interface BillingEntry {
     fixed_salary: number
     hourly_component: number
     total_amount: number
-    expiry_date?: string | null
-    created_at?: string
-    updated_at?: string
 }
 
 export interface BillingRollup {

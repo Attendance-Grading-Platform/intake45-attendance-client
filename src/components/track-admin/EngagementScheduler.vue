@@ -78,7 +78,7 @@ function goToToday(): void {
 }
 
 const weekDays = computed(() =>
-    Array.from({ length: WEEK_DAYS_COUNT }, (_, i) => addDays(currentWeekStart.value, i))
+    Array.from({ length: WEEK_DAYS_COUNT }, (_, i) => addDays(currentWeekStart.value, i)),
 )
 
 const weekStart = computed(() => toDateStr(weekDays.value[0]!))
@@ -91,9 +91,7 @@ const weekLabel = computed(() => {
 })
 
 const visibleEngagements = computed(() =>
-    engagements.value.filter(e =>
-        e.start_date <= weekEnd.value && e.end_date >= weekStart.value
-    )
+    engagements.value.filter((e) => e.start_date <= weekEnd.value && e.end_date >= weekStart.value),
 )
 
 interface DayColumnLayout {
@@ -108,7 +106,7 @@ interface DayColumnLayout {
 
 function getEngagementsForDay(dateStr: string): Engagement[] {
     return visibleEngagements.value
-        .filter(e => dateStr >= e.start_date && dateStr <= e.end_date)
+        .filter((e) => dateStr >= e.start_date && dateStr <= e.end_date)
         .sort((a, b) => a.start_date.localeCompare(b.start_date) || a.id - b.id)
 }
 
@@ -119,69 +117,71 @@ const dayColumns = computed((): DayColumnLayout[] =>
         const visible = all.slice(0, MAX_BLOCKS_PER_DAY)
         const overflow = Math.max(0, all.length - visible.length)
         return { dayIndex, date, dateStr, all, visible, overflow, isEmpty: all.length === 0 }
-    })
+    }),
 )
 
 const activeCohort = computed(() =>
-    cohortStore.cohorts.find(c => c.id === props.cohortId) ?? null
+    cohortStore.cohorts.find((c) => c.id === props.cohortId) ?? null,
 )
 
 const cohortName = computed(() => activeCohort.value?.name ?? 'Cohort')
 const trackName = computed(() => {
-    const row = cohortStore.cohorts.find(c => c.id === props.cohortId)
+    const row = cohortStore.cohorts.find((c) => c.id === props.cohortId)
     return row ? `Track ${row.track_id}` : 'Current Track'
 })
 
 const otherCohorts = computed(() =>
     cohortStore.cohorts
-        .filter(c => c.id !== props.cohortId && c.status === 'active')
-        .map(c => ({
-            id:         c.id,
-            name:       c.name,
+        .filter((c) => c.id !== props.cohortId && c.status === 'active')
+        .map((c) => ({
+            id: c.id,
+            name: c.name,
             track_name: `Track ${c.track_id}`,
-        }))
+        })),
 )
 
 function isToday(day: Date): boolean {
     return dayjs(day).isSame(dayjs(), 'day')
 }
 
-function getBlockColor(type: EngagementType): string {
-    const colors: Record<EngagementType, string> = {
-        lecture:          'bg-[#8B1A1A] text-white',
-        lab:              'bg-[#C4A882] text-[#4A3520]',
-        business_session: 'bg-[#D4C5A9] text-[#4A3520]',
+function getBlockClasses(type: EngagementType): string {
+    const base = 'rounded-[8px] px-3 py-3 cursor-pointer transition-all hover:brightness-[0.97] border'
+    const variants: Record<EngagementType, string> = {
+        lecture: `${base} bg-[#940002] border-[#940002] text-[#E6DDD4]`,
+        lab: `${base} bg-[#E6DDD4] border-[#C9BDB8] text-[#1A0000]`,
+        business_session: `${base} bg-[#F5EDEA] border-[#C9BDB8] text-[#1A0000]`,
     }
-    return colors[type]
+    return variants[type]
+}
+
+function blockMinHeight(hours: number): string {
+    return `${Math.max(80, Math.min(160, hours * 28))}px`
 }
 
 function formatTime(time: string): string {
     const [h = 8, m = 0] = time.split(':').map(Number)
     const period = h >= 12 ? 'PM' : 'AM'
     const hour12 = h % 12 || 12
-    return `${hour12}:${String(m).padStart(2, '0')} ${period}`
+    return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`
 }
 
 function formatTimeRange(engagement: Engagement): string {
-    const sameDay = engagement.start_date === engagement.end_date
-    if (sameDay) {
-        const endHour = 8 + engagement.hours_per_session
-        return `${formatTime('08:00')} - ${formatTime(`${endHour}:00`)}`
-    }
-    return `${dayjs(engagement.start_date).format('MMM D')} - ${dayjs(engagement.end_date).format('MMM D')}`
+    const startHour = 8
+    const endHour = startHour + engagement.hours_per_session
+    return `${formatTime(`${startHour}:00`)} - ${formatTime(`${endHour}:00`)}`
 }
 
 function getEngagementTitle(e: Engagement): string {
     switch (e.type) {
         case 'lecture':
-            return `${e.instructor.name} — Lecture`
+            return `${e.instructor.name} Lecture`
         case 'lab':
             if (e.lab_groups.length) {
-                return `Workshop ${e.lab_groups.map(g => g.name).join(', ')}`
+                return `${e.lab_groups.map((g) => g.name).join(' · ')} Lab`
             }
-            return `Workshop ${e.instructor.name}`
+            return `${e.instructor.name} Lab`
         case 'business_session':
-            return `Business Session — ${e.instructor.name}`
+            return `Business Session`
     }
     return ''
 }
@@ -234,7 +234,7 @@ function requestDelete(engagement: Engagement) {
 }
 
 async function handleModalSave(
-    payload: CreateEngagementPayload | { id: number; data: UpdateEngagementPayload }
+    payload: CreateEngagementPayload | { id: number; data: UpdateEngagementPayload },
 ) {
     try {
         if ('id' in payload) {
@@ -273,188 +273,168 @@ watch(currentWeekStart, closeAllPopovers)
 </script>
 
 <template>
-    <div class="min-h-full bg-[#F5F0E8] rounded-2xl p-6" @click="closeAllPopovers">
-        <!-- Page header -->
-        <div class="mb-6">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                Scheduling
-            </p>
-            <div class="flex items-center justify-between gap-4">
-                <h1 class="text-2xl font-bold text-gray-900">
-                    Engagements &amp; sessions
-                </h1>
+    <div @click="closeAllPopovers">
+        <!-- Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+            <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="bg-[#8B1A1A] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#6F1414] shrink-0"
-                    @click="openCreateModal()"
+                    class="h-[34px] px-3 font-sans text-[13px] text-[#666666] border border-[#C9BDB8] rounded-[6px] hover:bg-[#F5EDEA] transition-colors"
+                    @click="prevWeek"
                 >
-                    + Add engagement
+                    ← Prev
+                </button>
+                <span class="font-sans text-[14px] font-medium text-[#1A0000] tabular-nums min-w-[160px] text-center">
+                    {{ weekLabel }}
+                </span>
+                <button
+                    type="button"
+                    class="h-[34px] px-3 font-sans text-[13px] text-[#666666] border border-[#C9BDB8] rounded-[6px] hover:bg-[#F5EDEA] transition-colors"
+                    @click="nextWeek"
+                >
+                    Next →
+                </button>
+                <button
+                    type="button"
+                    class="h-[34px] px-3 font-sans text-[12px] text-[#888888] hover:text-[#1A0000] transition-colors"
+                    @click="goToToday"
+                >
+                    Today
                 </button>
             </div>
+            <button
+                type="button"
+                class="h-[38px] px-4 font-sans text-[14px] font-medium bg-[#940002] text-[#E6DDD4] rounded-[6px] hover:bg-[#7a0002] transition-colors shrink-0"
+                @click="openCreateModal()"
+            >
+                + Add engagement
+            </button>
         </div>
 
         <div
             v-if="error"
-            class="mb-4 px-4 py-3 rounded-lg border border-red-200 bg-red-50 text-sm text-red-700"
+            class="mb-4 px-4 py-3 rounded-[6px] border border-[#991B1B] bg-[#FEE2E2] text-[14px] text-[#991B1B] font-sans"
         >
             {{ error }}
         </div>
 
-        <!-- Content card -->
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-            <div v-if="loading" class="py-16 flex justify-center">
-                <div class="animate-pulse space-y-4 w-full">
-                    <div class="h-6 bg-gray-100 rounded w-1/3" />
-                    <div class="h-48 bg-gray-50 rounded-xl" />
-                </div>
-            </div>
-
-            <template v-else>
-                <div class="flex gap-6">
-                    <!-- Left: Calendar -->
-                    <div class="flex-1 min-w-0">
-                        <!-- Week navigation -->
-                        <div class="flex items-center gap-3 mb-4 flex-wrap">
-                            <button
-                                type="button"
-                                class="text-sm text-gray-500 hover:text-gray-800"
-                                @click="prevWeek"
-                            >
-                                ← Prev Week
-                            </button>
-                            <span class="text-sm font-semibold text-gray-700 tabular-nums">
-                                {{ weekLabel }}
-                            </span>
-                            <button
-                                type="button"
-                                class="text-sm text-gray-500 hover:text-gray-800"
-                                @click="nextWeek"
-                            >
-                                Next Week →
-                            </button>
-                            <button
-                                type="button"
-                                class="ml-2 text-xs border border-gray-200 px-2 py-1 rounded text-gray-500 hover:bg-gray-50"
-                                @click="goToToday"
-                            >
-                                Today
-                            </button>
-                        </div>
-
-                        <!-- Day column grid -->
-                        <div class="grid grid-cols-6 border border-gray-100 rounded-xl overflow-hidden">
-                            <div
-                                v-for="col in dayColumns"
-                                :key="col.dateStr"
-                                class="border-r border-gray-100 last:border-r-0 bg-white min-h-[280px] flex flex-col"
-                            >
-                                <!-- Day header -->
-                                <div class="px-2 py-3 text-center border-b border-gray-100">
-                                    <p class="text-xs uppercase font-semibold text-gray-500 tracking-wide">
-                                        {{ DAY_LABELS[col.dayIndex] }}
-                                    </p>
-                                    <p
-                                        class="text-lg tabular-nums mt-0.5"
-                                        :class="isToday(col.date) ? 'text-[#8B1A1A] font-bold' : 'text-gray-800 font-medium'"
-                                    >
-                                        {{ dayjs(col.date).format('D') }}
-                                    </p>
-                                </div>
-
-                                <!-- Blocks -->
-                                <div class="flex-1 p-2 flex flex-col gap-2">
-                                    <template v-if="col.isEmpty">
-                                        <div
-                                            class="h-20 border-2 border-dashed border-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:border-[#8B1A1A]/30 hover:bg-[#8B1A1A]/5 transition"
-                                            @click="openCreateModal(col.dateStr)"
-                                        >
-                                            <span class="text-gray-300 text-lg">+</span>
-                                        </div>
-                                    </template>
-
-                                    <template v-else>
-                                        <div
-                                            v-for="engagement in col.visible"
-                                            :key="`${engagement.id}-${col.dateStr}`"
-                                            :class="[
-                                                'rounded-lg p-2.5 cursor-pointer transition hover:opacity-90',
-                                                getBlockColor(engagement.type),
-                                            ]"
-                                            @click="openDetail(engagement, $event)"
-                                        >
-                                            <p class="text-[10px] font-medium opacity-70 mb-1 truncate">
-                                                {{ formatTimeRange(engagement) }}
-                                            </p>
-                                            <p class="text-xs font-bold leading-tight line-clamp-2">
-                                                {{ getEngagementTitle(engagement) }}
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            v-if="col.overflow > 0"
-                                            type="button"
-                                            class="text-xs text-[#8B1A1A] font-medium mt-auto text-left hover:underline"
-                                            @click="openDayOverflow(col.dateStr, $event)"
-                                        >
-                                            +{{ col.overflow }} more
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right: Sidebar -->
-                    <div class="w-72 flex-shrink-0 hidden lg:block">
-                        <UpcomingSessionsSidebar
-                            :engagements="engagements"
-                            :cohort-id="cohortId"
-                        />
-                    </div>
-                </div>
-
-                <!-- Sidebar on mobile below calendar -->
-                <div class="mt-6 lg:hidden">
-                    <UpcomingSessionsSidebar
-                        :engagements="engagements"
-                        :cohort-id="cohortId"
-                    />
-                </div>
-            </template>
+        <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+            <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6 animate-pulse h-[420px]" />
+            <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6 animate-pulse h-[420px] hidden lg:block" />
         </div>
+
+        <div v-else class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+            <!-- Calendar card -->
+            <section class="bg-white rounded-[10px] border border-[#C9BDB8] overflow-hidden min-w-0">
+                <div class="grid grid-cols-6 divide-x divide-[#C9BDB8]">
+                    <div
+                        v-for="col in dayColumns"
+                        :key="col.dateStr"
+                        class="min-h-[360px] flex flex-col bg-white"
+                    >
+                        <!-- Day header -->
+                        <div
+                            class="px-2 py-4 text-center border-b border-[#C9BDB8]"
+                            :class="isToday(col.date) ? 'bg-[#F5EDEA]' : ''"
+                        >
+                            <p class="font-sans text-[11px] font-medium text-[#888888] tracking-[1.5px] uppercase">
+                                {{ DAY_LABELS[col.dayIndex] }}
+                            </p>
+                        </div>
+
+                        <!-- Session blocks -->
+                        <div class="flex-1 p-2 flex flex-col gap-2">
+                            <template v-if="col.isEmpty">
+                                <button
+                                    type="button"
+                                    class="flex-1 min-h-[80px] border border-dashed border-[#C9BDB8] rounded-[8px] flex items-center justify-center text-[#AEAEAE] hover:border-[#940002] hover:text-[#940002] hover:bg-[#F5EDEA] transition-colors"
+                                    @click="openCreateModal(col.dateStr)"
+                                >
+                                    <span class="text-xl leading-none">+</span>
+                                </button>
+                            </template>
+
+                            <template v-else>
+                                <div
+                                    v-for="engagement in col.visible"
+                                    :key="`${engagement.id}-${col.dateStr}`"
+                                    :class="[getBlockClasses(engagement.type), 'flex flex-col justify-center']"
+                                    :style="{ minHeight: blockMinHeight(engagement.hours_per_session) }"
+                                    @click="openDetail(engagement, $event)"
+                                >
+                                    <p class="font-sans text-[10px] tracking-wide opacity-80 mb-1.5 truncate">
+                                        {{ formatTimeRange(engagement) }}
+                                    </p>
+                                    <p class="font-sans text-[13px] font-semibold leading-snug line-clamp-3">
+                                        {{ getEngagementTitle(engagement) }}
+                                    </p>
+                                </div>
+
+                                <button
+                                    v-if="col.overflow > 0"
+                                    type="button"
+                                    class="font-sans text-[12px] text-[#940002] font-medium mt-auto text-left hover:underline py-1"
+                                    @click="openDayOverflow(col.dateStr, $event)"
+                                >
+                                    +{{ col.overflow }} more
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sidebar -->
+            <UpcomingSessionsSidebar
+                class="hidden lg:flex"
+                :engagements="engagements"
+                :cohort-id="cohortId"
+            />
+        </div>
+
+        <!-- Mobile sidebar -->
+        <UpcomingSessionsSidebar
+            v-if="!loading"
+            class="mt-6 lg:hidden"
+            :engagements="engagements"
+            :cohort-id="cohortId"
+        />
 
         <!-- Detail popover -->
         <Teleport to="body">
             <div
                 v-if="selectedEngagement && popoverPosition"
-                class="fixed z-modal w-72 bg-white rounded-2xl border border-gray-100 p-4 shadow-lg"
+                class="fixed z-50 w-80 bg-white rounded-[10px] border border-[#C9BDB8] p-5 shadow-lg"
                 :style="{ top: `${popoverPosition.top}px`, left: `${popoverPosition.left}px` }"
                 @click.stop
             >
-                <p class="font-bold text-gray-900 mb-1">
+                <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mb-1">
+                    {{ typeLabel(selectedEngagement.type) }}
+                </p>
+                <p class="font-serif text-[20px] text-[#1A0000] mb-2 leading-tight">
                     {{ getEngagementTitle(selectedEngagement) }}
                 </p>
-                <p class="text-sm text-gray-600 mb-1">
+                <p class="font-sans text-[14px] text-[#666666] mb-1">
                     {{ selectedEngagement.instructor.name }}
                 </p>
-                <p class="text-xs text-gray-500 mb-1">
+                <p class="font-sans text-[13px] text-[#888888] mb-1 tabular-nums">
                     {{ formatTimeRange(selectedEngagement) }}
                 </p>
-                <p class="text-xs text-gray-500 mb-3">
+                <p class="font-sans text-[13px] text-[#888888] mb-4">
                     {{ dayjs(selectedEngagement.start_date).format('MMM D, YYYY') }} –
                     {{ dayjs(selectedEngagement.end_date).format('MMM D, YYYY') }}
                 </p>
                 <div class="flex gap-2">
                     <button
                         type="button"
-                        class="flex-1 h-[34px] text-xs rounded-lg border border-gray-200 hover:bg-gray-50"
+                        class="flex-1 h-[34px] text-[13px] font-sans rounded-[6px] border border-[#C9BDB8] text-[#1A0000] hover:bg-[#F5EDEA]"
                         @click="openEditModal(selectedEngagement)"
                     >
                         Edit
                     </button>
                     <button
                         type="button"
-                        class="flex-1 h-[34px] text-xs rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+                        class="flex-1 h-[34px] text-[13px] font-sans rounded-[6px] border border-[#991B1B] text-[#991B1B] hover:bg-[#FEE2E2]"
                         @click="requestDelete(selectedEngagement)"
                     >
                         Delete
@@ -462,43 +442,69 @@ watch(currentWeekStart, closeAllPopovers)
                 </div>
             </div>
 
-            <!-- Day overflow popover -->
+            <!-- Overflow modal — professional table layout -->
             <div
                 v-if="overflowPopover"
-                class="fixed inset-0 z-modal flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
                 @click.self="overflowPopover = null"
             >
                 <div
-                    class="w-full max-w-sm bg-white rounded-2xl border border-gray-100 p-5 shadow-2xl"
+                    class="w-full max-w-lg bg-white rounded-[10px] border border-[#C9BDB8] overflow-hidden"
                     @click.stop
                 >
-                    <h3 class="text-base font-bold text-gray-900 mb-4">
-                        All engagements — {{ dayjs(overflowPopover.date).format('ddd, MMM D, YYYY') }}
-                    </h3>
-                    <ul class="space-y-2 max-h-72 overflow-y-auto">
-                        <li v-for="eng in overflowPopover.engagements" :key="eng.id">
-                            <button
-                                type="button"
-                                class="w-full text-left rounded-lg p-2.5 hover:opacity-90 transition"
-                                :class="getBlockColor(eng.type)"
+                    <div class="px-6 py-4 border-b border-[#C9BDB8]">
+                        <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mb-1">
+                            All sessions
+                        </p>
+                        <h3 class="font-serif text-[22px] text-[#1A0000]">
+                            {{ dayjs(overflowPopover.date).format('dddd, MMM D') }}
+                        </h3>
+                    </div>
+
+                    <table class="w-full text-left font-sans">
+                        <thead class="border-b border-[#C9BDB8] bg-[#F5EDEA]/50">
+                            <tr class="text-[11px] text-[#888888] tracking-[1.5px] uppercase">
+                                <th class="px-6 py-3 font-normal">Time</th>
+                                <th class="px-6 py-3 font-normal">Session</th>
+                                <th class="px-6 py-3 font-normal">Type</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#C9BDB8]">
+                            <tr
+                                v-for="eng in overflowPopover.engagements"
+                                :key="eng.id"
+                                class="hover:bg-[#F5EDEA] cursor-pointer transition-colors"
                                 @click="openEditModal(eng)"
                             >
-                                <p class="text-[10px] font-medium opacity-70 mb-0.5">
+                                <td class="px-6 py-3 text-[13px] text-[#666666] tabular-nums whitespace-nowrap">
                                     {{ formatTimeRange(eng) }}
-                                </p>
-                                <p class="text-xs font-bold leading-tight">
+                                </td>
+                                <td class="px-6 py-3 text-[14px] font-medium text-[#1A0000]">
                                     {{ getEngagementTitle(eng) }}
-                                </p>
-                            </button>
-                        </li>
-                    </ul>
-                    <button
-                        type="button"
-                        class="mt-4 w-full h-[36px] text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
-                        @click="overflowPopover = null"
-                    >
-                        Close
-                    </button>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span
+                                        class="inline-flex px-2 py-0.5 rounded-[6px] text-[10px] font-medium tracking-wide uppercase border"
+                                        :class="eng.type === 'lecture'
+                                            ? 'bg-[#940002] text-[#E6DDD4] border-[#940002]'
+                                            : 'bg-[#F5EDEA] text-[#666666] border-[#C9BDB8]'"
+                                    >
+                                        {{ typeLabel(eng.type) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="px-6 py-4 border-t border-[#C9BDB8] flex justify-end">
+                        <button
+                            type="button"
+                            class="h-[38px] px-4 text-[14px] font-sans rounded-[6px] border border-[#C9BDB8] text-[#1A0000] hover:bg-[#F5EDEA]"
+                            @click="overflowPopover = null"
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </Teleport>

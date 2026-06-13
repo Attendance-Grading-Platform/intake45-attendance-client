@@ -4,6 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { useCohortDetail } from '@/composables/useCohortDetail'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import { useAuthStore } from '@/stores/auth.store'
+import { ROLES } from '@/constants/roles'
+
+const auth = useAuthStore()
 
 // ── Route & Router ─────────────────────────────────────────────
 const route = useRoute()
@@ -74,19 +78,29 @@ async function handleConfirmClose() {
 }
 
 // ── Nav: Quick Links ───────────────────────────────────────────
-const quickLinks = computed(() => [
-    { label: 'Manage Students', icon: '👥', to: { name: 'track-admin-students' } },
-    {
-        label: 'Manage Lab Groups',
-        icon: '🏫',
-        to: {
-            name: 'track-admin-lab-groups',
-            params: { cohortId: cohort.value?.id },
+const quickLinks = computed(() => {
+    if (auth.role === ROLES.BRANCH_MANAGER) {
+        return [
+            { label: 'View Tracks', icon: '🛤️', to: { name: 'branch-manager-tracks' } },
+            { label: 'Billing Data', icon: '💰', to: { name: 'branch-manager-billing' } },
+            { label: 'Analytics', icon: '📈', to: { name: 'branch-manager-analytics' } },
+            { label: 'All Cohorts', icon: '📂', to: { name: 'branch-manager-cohorts' } },
+        ]
+    }
+    return [
+        { label: 'Manage Students', icon: '👥', to: { name: 'track-admin-students' } },
+        { 
+            label: 'Manage Lab Groups', 
+            icon: '🏫', 
+            to: { 
+                name: 'track-admin-lab-groups', 
+                params: { cohortId: cohort.value?.id } 
+            } 
         },
-    },
-    { label: 'View Grades', icon: '📊', to: { name: 'track-admin-grades' } },
-    { label: 'Schedule Engagements', icon: '📅', to: { name: 'track-admin-engagements' } },
-])
+        { label: 'View Grades', icon: '📊', to: { name: 'track-admin-grades' } },
+        { label: 'Schedule Engagements', icon: '📅', to: { name: 'track-admin-engagements' } },
+    ]
+})
 
 // ── Init ───────────────────────────────────────────────────────
 onMounted(fetchCohort)
@@ -155,13 +169,13 @@ onMounted(fetchCohort)
                 <div class="flex gap-3">
                     <button
                         v-if="error === 'network'"
-                        class="h-9.5 px-5 text-sm font-sans rounded-md bg-brand-red text-brand-surface hover:bg-[#7a0002] transition-colors"
+                        class="h-[38px] px-5 text-sm font-sans rounded-[6px] bg-brand-red text-brand-surface hover:bg-[#7a0002] transition-colors"
                         @click="fetchCohort"
                     >
                         Retry
                     </button>
                     <button
-                        class="h-9.5 px-5 text-sm font-sans rounded-md border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
+                        class="h-[38px] px-5 text-sm font-sans rounded-[6px] border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
                         @click="router.back()"
                     >
                         Go Back
@@ -202,9 +216,9 @@ onMounted(fetchCohort)
                     </div>
 
                     <!-- Right: Close Cohort button -->
-                    <div v-if="cohort.status === 'active'" class="shrink-0">
+                    <div v-if="cohort.status === 'active'" class="flex-shrink-0">
                         <button
-                            class="h-9.5 px-4 text-sm font-sans rounded-md border border-danger text-danger hover:bg-danger-light transition-colors"
+                            class="h-[38px] px-4 text-sm font-sans rounded-[6px] border border-danger text-danger hover:bg-danger-light transition-colors"
                             @click="showCloseDialog = true"
                         >
                             Close Cohort
@@ -241,7 +255,7 @@ onMounted(fetchCohort)
                     <p class="font-sans text-sm text-[#666666] mb-4">No courses configured yet</p>
                     <router-link
                         :to="{ name: 'track-admin-courses' }"
-                        class="h-9.5 inline-flex items-center px-5 text-sm font-sans rounded-md bg-brand-red text-brand-surface hover:bg-[#7a0002] transition-colors"
+                        class="h-[38px] inline-flex items-center px-5 text-sm font-sans rounded-[6px] bg-brand-red text-brand-surface hover:bg-[#7a0002] transition-colors"
                     >
                         Add First Course
                     </router-link>
@@ -292,7 +306,7 @@ onMounted(fetchCohort)
                         </div>
 
                         <!-- No components warning -->
-                        <div v-if="course.segments.length === 0" class="mb-4 p-3 rounded-md bg-[#FEF3C7] border border-[#92400E]/20">
+                        <div v-if="course.segments.length === 0" class="mb-4 p-3 rounded-[6px] bg-[#FEF3C7] border border-[#92400E]/20">
                             <p class="text-xs font-sans text-[#92400E]">
                                 ⚠️ No components — students cannot be graded yet
                             </p>
