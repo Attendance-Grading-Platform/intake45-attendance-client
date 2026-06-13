@@ -1,13 +1,27 @@
-// src/api/modules/grade.api.ts
 import api from '@/api/axios'
 import type { ApiResponse } from '@/types/api.types'
-import type { Grade, GradeOverride } from '@/types/grade.types'
+
+export interface Grade {
+    id: number;
+    student_id: number;
+    raw_score: number;
+    raw_max: number;
+    normalized_score: number;
+    final_score: number;
+    course_component: {
+        id?: number;
+        type?: string;
+        weight?: number;
+    };
+    course: {
+        id?: number;
+        name?: string;
+    };
+    created_at?: string;
+}
+
+export const getGrades = () =>
+    api.get<ApiResponse<Grade[]>>('/v1/grades')
 
 export const getMyGrades = () =>
-    api.get<ApiResponse<Grade[]>>('/my/grades')
-
-export const storeGrade = (data: { student_id: number; raw_score: number; raw_max: number }) =>
-    api.post<ApiResponse<Grade>>('/grades', data)
-
-export const overrideGrade = (id: number, data: { new_value: number; override_note: string }) =>
-    api.post<ApiResponse<GradeOverride>>(`/grades/${id}/override`, data)
+    api.get<ApiResponse<Grade[]>>('/v1/me/grades')

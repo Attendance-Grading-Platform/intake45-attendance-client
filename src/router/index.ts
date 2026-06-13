@@ -14,10 +14,9 @@ const router = createRouter({
   routes: [
     ...authRoutes,
     ...studentRoutes,
-    // Add other routes as they are implemented
-    // ...instructorRoutes,
-    // ...trackAdminRoutes,
-    // ...branchManagerRoutes,
+    ...instructorRoutes,
+    ...trackAdminRoutes,
+    ...branchManagerRoutes,
   ],
 })
 
