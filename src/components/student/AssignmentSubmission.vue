@@ -18,7 +18,7 @@
         <span
           v-if="submissionMode !== 'none'"
           :class="[
-            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0',
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0',
             submissionMode === 'both'
               ? 'bg-red-50 text-red-700 ring-1 ring-red-200'
               : 'bg-green-50 text-green-700 ring-1 ring-green-200'
@@ -85,9 +85,9 @@
 
       <!-- ── OR Divider ───────────────────────────────────────────────── -->
       <div class="relative flex items-center" aria-hidden="true">
-        <div class="grow border-t border-gray-200" />
-        <span class="mx-3 shrink text-xs font-medium uppercase tracking-widest text-gray-400">or</span>
-        <div class="grow border-t border-gray-200" />
+        <div class="flex-grow border-t border-gray-200" />
+        <span class="mx-3 flex-shrink text-xs font-medium uppercase tracking-widest text-gray-400">or</span>
+        <div class="flex-grow border-t border-gray-200" />
       </div>
 
       <!-- ── File Upload ──────────────────────────────────────────────── -->
@@ -110,7 +110,7 @@
         leave-to-class="opacity-0 -translate-y-1"
       >
         <div v-if="errorMessage" role="alert" class="flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3">
-          <svg class="mt-0.5 size-4 shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg class="mt-0.5 size-4 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
           <p class="text-sm text-red-700">{{ errorMessage }}</p>

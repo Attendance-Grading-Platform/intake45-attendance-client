@@ -8,20 +8,10 @@ interface CohortSummary {
     cohort_name: string
 }
 
-export interface AtRiskStudent {
-    student_id: number
-    name: string
-    email?: string
-    ledger_balance: number
-    gpa: number
-    is_at_risk: boolean
-    lab_group_name?: string
-}
-
 export function useAtRisk() {
     const cohorts = ref<CohortSummary[]>([])
     const selectedCohortId = ref<number | null>(null)
-    const atRiskStudents = ref<AtRiskStudent[]>([])
+    const atRiskStudents = ref<unknown[]>([])
     const isLoading = ref(false)
     const errorMsg = ref<string | null>(null)
 
@@ -33,7 +23,7 @@ export function useAtRisk() {
 
             if (authStore.user?.role === 'branch_manager') {
                 const res = await getBranchAnalytics()
-                const data = (res.data.data ?? []) as Array<Record<string, Record<string, unknown>>>
+                const data = (res.data.data ?? []) as any[]
                 cohorts.value = data.map((item) => ({
                     cohort_id: (item.meta?.cohort_id ?? item.cohort_id ?? 0) as number,
                     cohort_name: (item.meta?.cohort_name ?? item.cohort_name ?? '') as string,
@@ -70,7 +60,7 @@ export function useAtRisk() {
 
         try {
             const res = await getAtRiskStudents(cohortId)
-            const data = res.data.data as { at_risk_students?: AtRiskStudent[] } | null
+            const data = res.data.data as { at_risk_students?: unknown[] } | null
             atRiskStudents.value = data?.at_risk_students ?? []
         } catch (err) {
             errorMsg.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to fetch at-risk students'

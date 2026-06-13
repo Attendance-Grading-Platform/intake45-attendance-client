@@ -97,7 +97,7 @@ function courseLabel(grade: OverrideGrade): string {
             <div class="flex items-start justify-between gap-4">
               <h2 class="font-serif text-[26px] text-neutral-800 leading-tight">Override Grade</h2>
               <button
-                class="mt-1 h-btn-xs w-7.5 rounded-btn border border-neutral-300 flex items-center justify-center text-neutral-500 hover:text-neutral-800 hover:border-neutral-800 transition-colors shrink-0"
+                class="mt-1 h-btn-xs w-[30px] rounded-btn border border-neutral-300 flex items-center justify-center text-neutral-500 hover:text-neutral-800 hover:border-neutral-800 transition-colors flex-shrink-0"
                 @click="handleClose"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -177,7 +177,7 @@ function courseLabel(grade: OverrideGrade): string {
                   v-if="noteInvalid"
                   class="mt-2 flex items-center gap-2 rounded-badge border border-danger/30 bg-danger-light px-3 py-2"
                 >
-                  <svg width="14" height="14" class="text-danger shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <svg width="14" height="14" class="text-danger flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M12 8v4m0 4h.01"/>
                   </svg>
@@ -203,7 +203,7 @@ function courseLabel(grade: OverrideGrade): string {
             </button>
             <button
               :disabled="isSubmitting"
-              class="h-btn flex-2 rounded-btn font-sans text-sm text-white transition-colors"
+              class="h-btn flex-[2] rounded-btn font-sans text-sm text-white transition-colors"
               :class="
                 attempted && (noteIsEmpty || noteIsTooShort)
                   ? 'bg-neutral-400 cursor-not-allowed'

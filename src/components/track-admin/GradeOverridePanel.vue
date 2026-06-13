@@ -72,7 +72,7 @@ async function submit() {
     <Transition name="overlay">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-80 bg-black/30"
+        class="fixed inset-0 z-[80] bg-black/30"
         @click.self="close"
       />
     </Transition>
@@ -80,7 +80,7 @@ async function submit() {
     <Transition name="slide">
       <div
         v-if="modelValue"
-        class="fixed inset-y-0 right-0 z-90 w-full max-w-105 bg-white shadow-xl flex flex-col"
+        class="fixed inset-y-0 right-0 z-[90] w-full max-w-[420px] bg-white shadow-xl flex flex-col"
       >
         <!-- Header -->
         <div class="px-6 py-5 border-b border-neutral-200 flex items-center justify-between">

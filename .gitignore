@@ -13,7 +13,6 @@ dist
 dist-ssr
 coverage
 *.local
-.env
 
 # Editor directories and files
 .vscode/*
@@ -24,6 +23,8 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+.env
+
 
 *.tsbuildinfo
 
@@ -38,8 +39,3 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
-
-# Environment variables
-.env
-.env.*
-!.env.example

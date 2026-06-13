@@ -1,193 +1,427 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getBranchAnalytics, getCohortAnalytics, getAtRiskStudents } from '@/api/modules/analytics.api'
-import { RefreshCw, TrendingUp, Users, AlertTriangle, BarChart3, ChevronRight } from '@lucide/vue'
+import { onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCohortStore } from '@/stores/cohort.store'
+import { useBranchAnalytics, atRiskReasons } from '@/composables/useBranchAnalytics'
+import PageHeader from '@/components/shared/PageHeader.vue'
+import SelectInput from '@/components/forms/SelectInput.vue'
+import MetricBarCell from '@/components/analytics/MetricBarCell.vue'
+import StudentNameCell from '@/components/analytics/StudentNameCell.vue'
+import AnalyticsStatusCell from '@/components/analytics/AnalyticsStatusCell.vue'
+import type { CohortAnalytics } from '@/types/analytics.types'
 
-interface CohortRow {
-  cohort_id: number
-  cohort_name: string
-  students_count: number
-  at_risk_count: number
-  average_grade: number
-  attendance_percentage: number
+const router = useRouter()
+const cohortStore = useCohortStore()
+
+const {
+    selectedCohortId,
+    trackFilter,
+    showAtRiskOnly,
+    loading,
+    error,
+    branchSummary,
+    trackNames,
+    filteredCohorts,
+    selectedCohort,
+    drillDownStudents,
+    cohortSelectOptions,
+    atRiskCount,
+    fetchBranchAnalytics,
+    selectCohort,
+} = useBranchAnalytics()
+
+function attendanceColor(rate: number): string {
+    if (rate >= 85) return 'text-[#2D6A4F]'
+    if (rate >= 70) return 'text-[#92400E]'
+    return 'text-[#991B1B]'
 }
 
-interface AtRiskStudent {
-  student_id: number
-  name: string
-  ledger_balance: number
-  gpa: number
+function passRateColor(rate: number): string {
+    if (rate >= 80) return 'text-[#2D6A4F]'
+    if (rate >= 60) return 'text-[#92400E]'
+    return 'text-[#991B1B]'
 }
 
-const isLoading = ref(false)
-const cohortRows = ref<CohortRow[]>([])
-const selectedCohortId = ref<number | null>(null)
-const cohortDetail = ref<Record<string, unknown> | null>(null)
-const atRiskStudents = ref<AtRiskStudent[]>([])
-const isLoadingDetail = ref(false)
-const errorMsg = ref<string | null>(null)
-
-const fetchBranchAnalytics = async () => {
-  isLoading.value = true
-  errorMsg.value = null
-  try {
-    const res = await getBranchAnalytics()
-    const data = (res.data.data ?? []) as Array<Record<string, Record<string, unknown>>>
-    cohortRows.value = data.map(item => ({
-      cohort_id: (item.meta?.cohort_id ?? item.cohort_id ?? 0) as number,
-      cohort_name: (item.meta?.cohort_name ?? item.cohort_name ?? 'Cohort') as string,
-      students_count: (item.meta?.students_count ?? item.students_count ?? 0) as number,
-      at_risk_count: (item.meta?.at_risk_count ?? item.at_risk_count ?? 0) as number,
-      average_grade: parseFloat(String(item.meta?.average_grade ?? item.average_grade ?? 0)),
-      attendance_percentage: parseFloat(String(item.meta?.attendance_percentage ?? item.attendance_percentage ?? 0)),
-    }))
-
-    if (cohortRows.value.length > 0 && cohortRows.value[0]) {
-      await selectCohort(cohortRows.value[0].cohort_id)
-    }
-  } catch (e) {
-    const err = e as { response?: { data?: { message?: string } } }
-    errorMsg.value = err.response?.data?.message ?? 'Failed to load analytics'
-  } finally {
-    isLoading.value = false
-  }
+function studentInitials(name: string): string {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
 }
 
-const selectCohort = async (cohortId: number) => {
-  selectedCohortId.value = cohortId
-  isLoadingDetail.value = true
-  cohortDetail.value = null
-  atRiskStudents.value = []
-  try {
-    const [detailRes, atRiskRes] = await Promise.allSettled([
-      getCohortAnalytics(cohortId),
-      getAtRiskStudents(cohortId)
-    ])
-    if (detailRes.status === 'fulfilled') cohortDetail.value = detailRes.value.data.data as Record<string, unknown>
-    if (atRiskRes.status === 'fulfilled') {
-      const d = atRiskRes.value.data.data as { at_risk_students?: AtRiskStudent[] }
-      atRiskStudents.value = d?.at_risk_students ?? []
-    }
-  } finally {
-    isLoadingDetail.value = false
-  }
+const cohortTableCount = computed(() => filteredCohorts.value.length)
+
+function goToCohortDetail(cohort: CohortAnalytics): void {
+    router.push({
+        name: 'branch-manager-cohort-detail',
+        params: { cohortId: cohort.meta.cohort_id },
+    })
 }
 
-onMounted(fetchBranchAnalytics)
+function openStudentProfile(studentId: number, studentName: string): void {
+    const cohortName = selectedCohort.value?.meta.cohort_name ?? 'Cohort'
+    cohortStore.openStudentProfile(studentId, studentName, cohortName, '—')
+}
+
+function onCohortSelect(value: string | number): void {
+    selectCohort(Number(value))
+}
+
+onMounted(() => fetchBranchAnalytics())
 </script>
 
 <template>
-  <div class="min-h-screen p-6">
-    <div class="mb-8">
-      <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mb-1">Branch Manager</p>
-      <h1 class="font-serif text-[36px] text-[#1A0000] leading-tight">Analytics Overview</h1>
-      <div class="h-[1px] bg-[#C9BDB8] w-full mt-4"></div>
-    </div>
+    <div class="max-w-7xl mx-auto pb-10">
+        <PageHeader label="Branch analytics" title="Performance overview" />
 
-    <div v-if="isLoading" class="py-16 text-center">
-      <RefreshCw class="w-8 h-8 text-[#940002] animate-spin mx-auto mb-3" />
-      <p class="text-sm text-[#666]">Loading analytics...</p>
-    </div>
+        <p class="font-sans text-[14px] text-[#666666] leading-relaxed -mt-4 mb-8">
+            Branch-wide attendance and grade rollups with drill-down into any cohort.
+            Students are flagged at-risk when attendance falls below 85% or GPA drops below 60.
+        </p>
 
-    <div v-else-if="errorMsg" class="p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">{{ errorMsg }}</div>
+        <!-- Error -->
+        <div
+            v-if="error && !loading"
+            class="mb-6 p-4 rounded-[10px] border border-[#991B1B] bg-[#FEE2E2] text-[#991B1B] font-sans text-[14px] flex flex-wrap items-center justify-between gap-3"
+        >
+            <span>{{ error }}</span>
+            <button
+                type="button"
+                class="h-[34px] px-3 text-[13px] font-medium border border-[#991B1B] rounded-[6px] hover:bg-white transition-colors"
+                @click="fetchBranchAnalytics"
+            >
+                Retry
+            </button>
+        </div>
 
-    <template v-else>
-      <!-- Summary Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white border border-[#C9BDB8] rounded-[10px] p-6">
-          <div class="flex items-center gap-3 mb-3">
-            <BarChart3 class="w-5 h-5 text-[#940002]" />
-            <span class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase">Active Cohorts</span>
-          </div>
-          <p class="font-serif text-[40px] text-[#1A0000]">{{ cohortRows.length }}</p>
-        </div>
-        <div class="bg-white border border-[#C9BDB8] rounded-[10px] p-6">
-          <div class="flex items-center gap-3 mb-3">
-            <Users class="w-5 h-5 text-[#940002]" />
-            <span class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase">Total Students</span>
-          </div>
-          <p class="font-serif text-[40px] text-[#1A0000]">
-            {{ cohortRows.reduce((s, c) => s + c.students_count, 0) }}
-          </p>
-        </div>
-        <div class="bg-white border border-[#C9BDB8] rounded-[10px] p-6">
-          <div class="flex items-center gap-3 mb-3">
-            <AlertTriangle class="w-5 h-5 text-amber-500" />
-            <span class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase">At-Risk Total</span>
-          </div>
-          <p class="font-serif text-[40px] text-[#940002]">
-            {{ cohortRows.reduce((s, c) => s + c.at_risk_count, 0) }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Cohorts Table -->
-      <div class="bg-white border border-[#C9BDB8] rounded-[10px] overflow-hidden mb-8">
-        <div class="p-6 border-b border-[#C9BDB8]">
-          <h2 class="font-serif text-[20px] text-[#1A0000]">Cohort Breakdown</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-[#F5EDEA]">
-                <th class="p-4 font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase border-b border-[#C9BDB8]">Cohort</th>
-                <th class="p-4 font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase border-b border-[#C9BDB8] text-center">Students</th>
-                <th class="p-4 font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase border-b border-[#C9BDB8] text-center">At-Risk</th>
-                <th class="p-4 font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase border-b border-[#C9BDB8] text-right">Details</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-[#C9BDB8]">
-              <tr v-for="cohort in cohortRows" :key="cohort.cohort_id"
-                class="hover:bg-[#F5EDEA] transition-colors cursor-pointer"
-                :class="selectedCohortId === cohort.cohort_id ? 'bg-[#F5EDEA]' : ''"
-                @click="selectCohort(cohort.cohort_id)"
-              >
-                <td class="p-4 font-sans text-sm font-semibold text-[#1A0000]">{{ cohort.cohort_name }}</td>
-                <td class="p-4 text-center font-mono text-sm text-[#666]">{{ cohort.students_count }}</td>
-                <td class="p-4 text-center">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                    :class="cohort.at_risk_count > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
-                    {{ cohort.at_risk_count }}
-                  </span>
-                </td>
-                <td class="p-4 text-right">
-                  <ChevronRight class="w-4 h-4 text-[#940002] ml-auto" />
-                </td>
-              </tr>
-              <tr v-if="cohortRows.length === 0">
-                <td colspan="4" class="p-8 text-center text-sm text-[#888]">No cohort data available.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Selected Cohort At-Risk Panel -->
-      <div v-if="selectedCohortId" class="bg-white border border-[#C9BDB8] rounded-[10px] overflow-hidden">
-        <div class="p-6 border-b border-[#C9BDB8] flex items-center gap-3">
-          <TrendingUp class="w-5 h-5 text-[#940002]" />
-          <h2 class="font-serif text-[20px] text-[#1A0000]">At-Risk Students</h2>
-          <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-[11px] font-bold">{{ atRiskStudents.length }}</span>
-        </div>
-        <div v-if="isLoadingDetail" class="p-8 text-center">
-          <RefreshCw class="w-6 h-6 text-[#940002] animate-spin mx-auto" />
-        </div>
-        <div v-else-if="atRiskStudents.length === 0" class="p-8 text-center text-sm text-[#888]">
-          No at-risk students in this cohort. 🎉
-        </div>
-        <div v-else class="divide-y divide-[#C9BDB8]">
-          <div v-for="student in atRiskStudents" :key="student.student_id" class="p-4 flex items-center justify-between">
-            <div>
-              <p class="font-semibold text-sm text-[#1A0000]">{{ student.name }}</p>
-              <div class="flex gap-4 mt-1 text-xs text-[#666]">
-                <span>Ledger: <b :class="student.ledger_balance < 150 ? 'text-red-600' : ''">{{ student.ledger_balance }}</b>/250</span>
-                <span v-if="student.gpa < 60">GPA: <b class="text-red-600">{{ student.gpa }}</b></span>
-              </div>
+        <!-- Loading -->
+        <div v-if="loading" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="n in 4" :key="n" class="bg-white rounded-[10px] border border-[#C9BDB8] p-6 animate-pulse h-24" />
             </div>
-            <AlertTriangle class="w-5 h-5 text-amber-500 shrink-0" />
-          </div>
+            <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6 animate-pulse h-72" />
         </div>
-      </div>
-    </template>
-  </div>
+
+        <template v-else-if="!error">
+            <!-- Empty -->
+            <div
+                v-if="cohortSelectOptions.length === 0"
+                class="bg-white rounded-[10px] border border-[#C9BDB8] p-12 text-center"
+            >
+                <p class="font-serif text-[26px] text-[#1A0000] mb-2">No analytics yet</p>
+                <p class="font-sans text-[14px] text-[#666666]">
+                    Create cohorts and enroll students to see branch performance data.
+                </p>
+            </div>
+
+            <template v-else>
+                <!-- Summary metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6">
+                        <p class="font-sans text-[32px] font-medium text-[#1A0000] tabular-nums leading-none">
+                            {{ branchSummary.totalStudents }}
+                        </p>
+                        <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mt-2">Total students</p>
+                    </div>
+                    <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6">
+                        <p class="font-sans text-[32px] font-medium tabular-nums leading-none" :class="attendanceColor(branchSummary.avgAttendance)">
+                            {{ branchSummary.avgAttendance }}%
+                        </p>
+                        <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mt-2">Avg attendance</p>
+                    </div>
+                    <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6">
+                        <p class="font-sans text-[32px] font-medium tabular-nums leading-none" :class="passRateColor(branchSummary.avgPassRate)">
+                            {{ branchSummary.avgPassRate }}%
+                        </p>
+                        <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mt-2">Avg pass rate</p>
+                    </div>
+                    <div class="bg-white rounded-[10px] border border-[#C9BDB8] p-6">
+                        <p
+                            class="font-sans text-[32px] font-medium tabular-nums leading-none"
+                            :class="branchSummary.totalAtRisk > 0 ? 'text-[#92400E]' : 'text-[#2D6A4F]'"
+                        >
+                            {{ branchSummary.totalAtRisk }}
+                        </p>
+                        <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mt-2">At-risk students</p>
+                    </div>
+                </div>
+
+                <!-- Cohort performance table -->
+                <section class="mb-8 bg-white rounded-[10px] border border-[#C9BDB8] overflow-hidden">
+                    <div class="px-6 py-5 border-b border-[#C9BDB8] flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mb-1">
+                                Cohort comparison
+                            </p>
+                            <h2 class="font-serif text-[26px] text-[#1A0000] leading-tight">
+                                Performance by cohort
+                            </h2>
+                        </div>
+                        <div class="flex flex-wrap items-end gap-4">
+                            <span class="font-sans text-[13px] text-[#888888] tabular-nums pb-2">
+                                {{ cohortTableCount }} {{ cohortTableCount === 1 ? 'cohort' : 'cohorts' }}
+                            </span>
+                            <div v-if="trackNames.length > 1" class="w-44">
+                                <SelectInput
+                                    v-model="trackFilter"
+                                    label="Track"
+                                    :options="[
+                                        { label: 'All tracks', value: 'all' },
+                                        ...trackNames.map((name) => ({ label: name, value: name })),
+                                    ]"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="filteredCohorts.length === 0" class="px-6 py-14 text-center">
+                        <p class="font-sans text-[14px] text-[#888888]">No cohorts match this track filter.</p>
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full min-w-[880px] font-sans border-collapse">
+                            <colgroup>
+                                <col class="w-[22%]">
+                                <col class="w-[16%]">
+                                <col class="w-[8%]">
+                                <col class="w-[16%]">
+                                <col class="w-[16%]">
+                                <col class="w-[10%]">
+                                <col class="w-[12%]">
+                            </colgroup>
+                            <thead>
+                                <tr class="border-b border-[#C9BDB8] bg-[#F5EDEA]/60">
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Cohort
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Track
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Students
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Attendance
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Pass rate
+                                    </th>
+                                    <th class="px-6 py-3 text-center text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        At-risk
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="cohort in filteredCohorts"
+                                    :key="cohort.meta.cohort_id"
+                                    class="border-b border-[#C9BDB8] last:border-b-0 transition-colors hover:bg-[#F5EDEA]"
+                                    :class="selectedCohortId === cohort.meta.cohort_id ? 'bg-[#F5EDEA] border-l-2 border-l-[#940002]' : ''"
+                                >
+                                    <td class="px-6 py-4 align-middle">
+                                        <p class="text-[14px] font-medium text-[#1A0000]">
+                                            {{ cohort.meta.cohort_name }}
+                                        </p>
+                                        <p class="text-[12px] text-[#888888] mt-0.5 tabular-nums">
+                                            {{ cohort.meta.total_sessions }} sessions
+                                        </p>
+                                    </td>
+                                    <td class="px-6 py-4 align-middle text-[14px] text-[#666666]">
+                                        {{ cohort.track_name ?? '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 align-middle text-right">
+                                        <span class="text-[14px] font-medium text-[#1A0000] tabular-nums">
+                                            {{ cohort.meta.student_count }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 align-middle">
+                                        <MetricBarCell
+                                            :value="cohort.averages.attendance_rate"
+                                            :color-class="attendanceColor(cohort.averages.attendance_rate)"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4 align-middle">
+                                        <MetricBarCell
+                                            :value="cohort.averages.pass_rate"
+                                            :color-class="passRateColor(cohort.averages.pass_rate)"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4 align-middle text-center">
+                                        <span
+                                            class="inline-flex min-w-[32px] justify-center items-center px-2.5 py-1 rounded-[6px] text-[11px] font-medium tracking-wide uppercase border tabular-nums"
+                                            :class="atRiskCount(cohort) > 0
+                                                ? 'bg-[#FEF3C7] text-[#92400E] border-[#92400E]'
+                                                : 'bg-[#D1FAE5] text-[#2D6A4F] border-[#2D6A4F]'"
+                                        >
+                                            {{ atRiskCount(cohort) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 align-middle">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                class="h-[30px] px-3 text-[12px] font-medium rounded-[6px] border border-[#940002] text-[#940002] hover:bg-[#F5EDEA] transition-colors whitespace-nowrap"
+                                                @click="selectCohort(cohort.meta.cohort_id)"
+                                            >
+                                                Drill down
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="h-[30px] px-3 text-[12px] font-medium rounded-[6px] text-[#666666] hover:text-[#1A0000] hover:bg-[#F5EDEA] transition-colors whitespace-nowrap"
+                                                @click="goToCohortDetail(cohort)"
+                                            >
+                                                View
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Student drill-down table -->
+                <section v-if="selectedCohort" class="bg-white rounded-[10px] border border-[#C9BDB8] overflow-hidden">
+                    <div class="px-6 py-5 border-b border-[#C9BDB8]">
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p class="font-sans text-[11px] text-[#888888] tracking-[1.5px] uppercase mb-1">
+                                    Cohort drill-down
+                                </p>
+                                <h2 class="font-serif text-[26px] text-[#1A0000] leading-tight">
+                                    {{ selectedCohort.meta.cohort_name }}
+                                </h2>
+                                <p class="font-sans text-[14px] text-[#666666] mt-1">
+                                    {{ selectedCohort.track_name }}
+                                    <span class="text-[#C9BDB8] mx-2">·</span>
+                                    {{ selectedCohort.meta.student_count }} students
+                                    <span class="text-[#C9BDB8] mx-2">·</span>
+                                    {{ selectedCohort.meta.total_sessions }} sessions
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-end gap-4">
+                                <div class="w-52">
+                                    <SelectInput
+                                        :model-value="String(selectedCohortId ?? '')"
+                                        label="Switch cohort"
+                                        :options="cohortSelectOptions.map((o) => ({ label: o.label, value: String(o.value) }))"
+                                        @update:model-value="onCohortSelect"
+                                    />
+                                </div>
+                                <label class="flex items-center gap-2 h-[40px] font-sans text-[14px] text-[#666666] cursor-pointer select-none">
+                                    <input
+                                        v-model="showAtRiskOnly"
+                                        type="checkbox"
+                                        class="rounded border-[#C9BDB8] text-[#940002] focus:ring-0 focus:outline-none"
+                                    />
+                                    At-risk only
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="drillDownStudents.length === 0" class="px-6 py-14 text-center">
+                        <p class="font-sans text-[14px] text-[#888888]">
+                            {{ showAtRiskOnly ? 'No at-risk students in this cohort.' : 'No students enrolled yet.' }}
+                        </p>
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="w-full min-w-[720px] font-sans border-collapse">
+                            <colgroup>
+                                <col class="w-[34%]">
+                                <col class="w-[18%]">
+                                <col class="w-[12%]">
+                                <col class="w-[24%]">
+                                <col class="w-[12%]">
+                            </colgroup>
+                            <thead>
+                                <tr class="border-b border-[#C9BDB8] bg-[#F5EDEA]/60">
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Student
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Attendance
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        GPA
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Status
+                                    </th>
+                                    <th class="px-6 py-3 text-right text-[11px] font-normal text-[#888888] tracking-[1.5px] uppercase">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="student in drillDownStudents"
+                                    :key="student.student_id"
+                                    class="border-b border-[#C9BDB8] last:border-b-0 transition-colors hover:bg-[#F5EDEA]"
+                                    :class="student.is_at_risk ? 'bg-[#FEF3C7]/20' : ''"
+                                >
+                                    <td class="px-6 py-4 align-middle">
+                                        <StudentNameCell
+                                            :label="student.name"
+                                            :initials="studentInitials(student.name)"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4 align-middle">
+                                        <MetricBarCell
+                                            :value="student.attendance_rate"
+                                            :color-class="attendanceColor(student.attendance_rate)"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4 align-middle text-right">
+                                        <span
+                                            class="text-[15px] font-medium tabular-nums"
+                                            :class="passRateColor(student.gpa)"
+                                        >
+                                            {{ student.gpa }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 align-middle">
+                                        <AnalyticsStatusCell
+                                            :status="student.is_at_risk ? 'at_risk' : 'on_track'"
+                                            :reasons="student.is_at_risk ? atRiskReasons(student) : undefined"
+                                        />
+                                    </td>
+                                    <td class="px-6 py-4 align-middle text-right">
+                                        <button
+                                            type="button"
+                                            class="h-[30px] px-3 text-[12px] font-medium rounded-[6px] border border-[#940002] text-[#940002] hover:bg-[#F5EDEA] transition-colors whitespace-nowrap"
+                                            @click="openStudentProfile(student.student_id, student.name)"
+                                        >
+                                            View profile
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Table footer summary -->
+                    <div
+                        v-if="drillDownStudents.length > 0"
+                        class="px-6 py-3 border-t border-[#C9BDB8] bg-[#F5EDEA]/30 flex flex-wrap items-center justify-between gap-2"
+                    >
+                        <p class="font-sans text-[12px] text-[#888888] tracking-wide uppercase">
+                            Showing {{ drillDownStudents.length }} students
+                        </p>
+                        <p class="font-sans text-[13px] text-[#666666] tabular-nums">
+                            {{ drillDownStudents.filter((s) => s.is_at_risk).length }} at-risk
+                            ·
+                            {{ drillDownStudents.filter((s) => !s.is_at_risk).length }} on track
+                        </p>
+                    </div>
+                </section>
+            </template>
+        </template>
+    </div>
 </template>

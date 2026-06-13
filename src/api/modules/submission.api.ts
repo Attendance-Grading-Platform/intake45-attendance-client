@@ -15,3 +15,10 @@ export const getSubmissionQueue = (params: SubmissionQueueParams) => {
 export const getSubmissionStats = () => {
   return api.get<ApiResponse<any>>('/v1/submissions/stats')
 }
+
+export const getEngagementDeliverables = (engagementId: number, page = 1) => {
+  return api.get<ApiResponse<{
+    data: Array<{ id: number; status: string; grade?: { raw_score: number } | null }>
+    total: number
+  }>>(`/v1/engagements/${engagementId}/deliverables`, { params: { page, per_page: 100 } })
+}

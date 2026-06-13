@@ -1,20 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Grade, BatchGradeItem } from '@/api/modules/grade.api'
+import type { Grade } from '@/api/modules/grade.api'
 import * as gradeApi from '@/api/modules/grade.api'
-import api from '@/api/axios'
+import axios from 'axios'
 
 // Shape returned by GET /api/v1/grades
 export interface GradeEntry {
-  id?: number
   student_id: number
-  student_name?: string
   course_component_id: number
-  component_name?: string
   raw_score: number | null
   raw_max: number
   graded_by?: number
-  graded_by_name?: string
   overridden_by?: number | null
   original_value?: number | null
   override_note?: string | null
@@ -62,17 +58,12 @@ export const useGradeStore = defineStore('grade', () => {
 
     for (const [key, raw_score] of entries) {
       const [studentId, componentId] = key.split('_').map(Number)
-      const raw_max = rawMax[String(componentId)]
-      if (raw_max === undefined || raw_max <= 0) {
-        failed++
-        continue
-      }
       try {
-        await api.post('/v1/grades', {
+        await axios.post('/api/v1/grades', {
           student_id:          studentId,
           course_component_id: componentId,
           raw_score,
-          raw_max,
+          raw_max: rawMax[String(componentId)] ?? 100,
         })
         success++
       } catch {
@@ -87,40 +78,6 @@ export const useGradeStore = defineStore('grade', () => {
     if (failed > 0) {
       saveError.value = `${failed} grade(s) failed to save.`
     }
-    return { success, failed }
-  }
-
-  // ── Batch save: parallel individual POSTs to POST /api/v1/grades ──
-  // Replaces the non-existent /v1/grades/batch endpoint.
-  // Promise.allSettled fires all requests in parallel; partial failures
-  // are counted and surfaced without aborting the remaining saves.
-  async function batchSaveGrades(
-    items: BatchGradeItem[]
-  ): Promise<{ success: number; failed: number }> {
-    isSaving.value  = true
-    saveError.value = null
-
-    const results = await Promise.allSettled(
-      items.map(item =>
-        api.post('/v1/grades', {
-          student_id:          item.student_id,
-          course_component_id: item.course_component_id,
-          raw_score:           item.raw_score,
-          raw_max:             item.raw_max,
-        })
-      )
-    )
-
-    const success = results.filter(r => r.status === 'fulfilled').length
-    const failed  = results.filter(r => r.status === 'rejected').length
-
-    await fetchGrades()
-
-    isSaving.value = false
-    if (failed > 0) {
-      saveError.value = `${failed} grade(s) failed to save.`
-    }
-
     return { success, failed }
   }
 
@@ -140,7 +97,7 @@ export const useGradeStore = defineStore('grade', () => {
     }
 
     try {
-      await api.patch(`/v1/grades/${gradeId}/override`, {
+      await axios.patch(`/api/v1/grades/${gradeId}/override`, {
         new_score: payload.new_score,
         note:      payload.note.trim(),
       })
@@ -160,22 +117,8 @@ export const useGradeStore = defineStore('grade', () => {
   async function fetchCohortGrades(cohortId: number): Promise<GradeEntry[]> {
     isLoading.value = true
     try {
-      const res = await api.get(`/v1/cohorts/${cohortId}/grades`)
-      return (res.data.data ?? []).map((g: any) => ({
-        id: g.id,
-        student_id: g.student_id,
-        student_name: g.student?.name || 'Unknown',
-        course_component_id: g.course_component_id,
-        component_name: g.course_component?.name || g.course_component?.type || 'Unknown Component',
-        raw_score: g.raw_score,
-        raw_max: g.raw_max,
-        graded_by: g.graded_by,
-        graded_by_name: g.graded_by_user?.name || null, // Assuming if backend loads it, or we just leave it undefined
-        overridden_by: g.overridden_by,
-        original_value: g.original_value,
-        override_note: g.override_note,
-        normalized_score: g.normalized_score
-      }))
+      const res = await axios.get(`/api/v1/cohorts/${cohortId}/grades`)
+      return res.data.data ?? []
     } finally {
       isLoading.value = false
     }
@@ -189,7 +132,6 @@ export const useGradeStore = defineStore('grade', () => {
     overrideError,
     fetchGrades,
     submitGrades,
-    batchSaveGrades,
     overrideGrade,
     fetchCohortGrades,
   }
