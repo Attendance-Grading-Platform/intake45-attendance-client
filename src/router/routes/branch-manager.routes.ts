@@ -42,6 +42,11 @@ const routes: RouteRecordRaw[] = [
                 name: 'branch-manager-billing',
                 component: () => import('@/pages/branch-manager/BillingPage.vue'),
             },
+            {
+                path: 'profile',
+                name: 'branch-manager-profile',
+                component: () => import('@/pages/shared/ProfilePage.vue'),
+            },
         ],
     },
 ]

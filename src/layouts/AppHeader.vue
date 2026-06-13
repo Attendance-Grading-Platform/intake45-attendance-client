@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth.store";
+import { useRole } from "@/composables/useRole";
 import { ROLES } from "@/constants/roles";
 
 const props = withDefaults(defineProps<{ sidebarOpen?: boolean }>(), { sidebarOpen: true });
@@ -9,6 +10,7 @@ const emit = defineEmits<{ "toggle-sidebar": [] }>();
 
 const auth = useAuthStore();
 const router = useRouter();
+const { profileRoute } = useRole();
 
 // role
 const roleLabel = computed((): string => {
@@ -46,6 +48,11 @@ function closeUserMenu(): void {
 async function handleLogout(): Promise<void> {
   auth.logout();
   await router.push({ name: "login" });
+}
+
+async function goToProfile(): Promise<void> {
+  closeUserMenu();
+  await router.push({ name: profileRoute.value });
 }
 
 // ── Directive ──────────────────────────────────────────────────
@@ -195,6 +202,7 @@ const vClickOutside = {
                 type="button"
                 role="menuitem"
                 class="w-full text-left px-4 py-2 font-sans text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+                @click="goToProfile"
               >
                 Profile settings
               </button>

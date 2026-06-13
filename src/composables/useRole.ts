@@ -23,6 +23,11 @@ export function useRole() {
         return `${auth.role.replace('_', '-')}-dashboard`
     })
 
+    const profileRoute = computed((): string => {
+        if (!auth.role) return 'login'
+        return `${auth.role.replace('_', '-')}-profile`
+    })
+
     return {
         role,
         isBranchManager,
@@ -31,5 +36,6 @@ export function useRole() {
         isStudent,
         hasRole,
         dashboardRoute,
+        profileRoute,
     }
 }

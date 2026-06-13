@@ -75,6 +75,11 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/pages/track-admin/CohortOverviewPage.vue'),
                 meta: { requiresAuth: true, role: 'track_admin' },
             },
+            {
+                path: 'profile',
+                name: 'track-admin-profile',
+                component: () => import('@/pages/shared/ProfilePage.vue'),
+            },
         ],
     },
 ]
