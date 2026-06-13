@@ -4,7 +4,7 @@ import api from '@/api/axios'
 
 export function useExcuses() {
     const excuses = ref<ExcuseRequest[]>([])
-    const absentSessions = ref<any[]>([])
+    const absentSessions = ref<unknown[]>([])
     const isLoading = ref(false)
     const isSubmitting = ref(false)
     const errorMsg = ref<string | null>(null)
@@ -16,8 +16,8 @@ export function useExcuses() {
         try {
             const res = await getExcuses()
             excuses.value = res.data.data || []
-        } catch (err: any) {
-            errorMsg.value = err.response?.data?.message || 'Failed to fetch excuses'
+        } catch (err) {
+            errorMsg.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to fetch excuses'
             console.error('Fetch excuses error:', err)
         } finally {
             isLoading.value = false
@@ -28,7 +28,7 @@ export function useExcuses() {
         try {
             const res = await api.get('/v1/me/absent-sessions')
             absentSessions.value = res.data.data || []
-        } catch (err: any) {
+        } catch (err) {
             console.error('Fetch absent sessions error:', err)
             // Silently fail or handle as needed
         }
@@ -64,11 +64,12 @@ export function useExcuses() {
             // Refresh the list after submission
             await fetchExcuses()
             await fetchAbsentSessions()
-        } catch (err: any) {
-            if (err.response) {
-                errorMsg.value = err.response.data?.message || 'Failed to submit excuse'
+        } catch (err) {
+            const e = err as { response?: { data?: { message?: string } }; message?: string }
+            if (e.response) {
+                errorMsg.value = e.response.data?.message ?? 'Failed to submit excuse'
             } else {
-                errorMsg.value = err.message || 'An unknown error occurred.'
+                errorMsg.value = e.message ?? 'An unknown error occurred.'
             }
             throw err // Re-throw to allow component to handle it if needed
         } finally {

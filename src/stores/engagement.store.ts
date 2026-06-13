@@ -26,14 +26,14 @@ export const useEngagementStore = defineStore('engagement', () => {
         return sessionsList
     })
 
-    async function fetchAll(params?: any): Promise<void> {
+    async function fetchAll(params?: Record<string, unknown>): Promise<void> {
         isLoading.value = true
         error.value = null
         try {
             const res = await engagementApi.getEngagements(params)
             engagements.value = res.data.data
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch engagements'
+        } catch (err) {
+            error.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to fetch engagements'
             throw err
         } finally {
             isLoading.value = false
@@ -46,8 +46,8 @@ export const useEngagementStore = defineStore('engagement', () => {
         try {
             const res = await engagementApi.getEngagementById(id)
             currentEngagement.value = res.data.data
-        } catch (err: any) {
-            error.value = err.response?.data?.message || 'Failed to fetch engagement'
+        } catch (err) {
+            error.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to fetch engagement'
             throw err
         } finally {
             isLoading.value = false
@@ -61,11 +61,12 @@ export const useEngagementStore = defineStore('engagement', () => {
             await engagementApi.createAdminEngagement(payload)
             // Refresh list after creation
             await fetchAll()
-        } catch (err: any) {
-            if (err.response?.status >= 500) {
+        } catch (err) {
+            const e = err as { response?: { status?: number; data?: { message?: string } } }
+            if ((e.response?.status ?? 0) >= 500) {
                 error.value = 'An unexpected server error occurred. Please contact the administrator.'
             } else {
-                error.value = err.response?.data?.message || 'Failed to create engagement'
+                error.value = e.response?.data?.message ?? 'Failed to create engagement'
             }
             throw err
         } finally {

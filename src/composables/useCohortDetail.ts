@@ -15,8 +15,8 @@ export function useCohortDetail(cohortId: number) {
         try {
             const response = await getCohort(cohortId)
             cohort.value = response.data.data
-        } catch (err: any) {
-            const status = err.response?.status
+        } catch (err) {
+            const status = (err as { response?: { status?: number } }).response?.status
             if (status === 404) {
                 error.value = 'not_found'
             } else if (status === 403) {

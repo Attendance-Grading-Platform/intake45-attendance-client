@@ -224,8 +224,8 @@ const handleComponentSubmit = async (emittedFormData: FormData) => {
 
         await deliverableStore.submitDeliverable(formData)
         closeSubmissionModal()
-    } catch (err: any) {
-        formError.value = err.response?.data?.message || 'Failed to submit assignment. Please try again.'
+    } catch (err) {
+        formError.value = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Failed to submit assignment. Please try again.'
     } finally {
         isSubmitting.value = false
     }

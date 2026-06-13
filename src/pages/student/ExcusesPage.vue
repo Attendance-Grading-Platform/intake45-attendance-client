@@ -29,7 +29,7 @@ const handleExcuseSubmit = async (payload: { sessionId: number; reason: string; 
     if (formRef.value) {
       formRef.value.clearForm()
     }
-  } catch (err) {
+  } catch {
     // Error is handled by the composable and shown in errorMsg
   }
 }

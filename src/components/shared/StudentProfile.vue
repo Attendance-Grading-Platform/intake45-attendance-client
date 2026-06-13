@@ -48,7 +48,7 @@ const submitNote = async () => {
 import { computed } from "vue";
 
 const groupedGrades = computed(() => {
-  const groups: Record<string, any[]> = {};
+  const groups: Record<string, unknown[]> = {};
   const grades = cohortStore.analytics?.grades_breakdown;
   
   if (!grades) return groups;

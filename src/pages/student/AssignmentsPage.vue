@@ -277,7 +277,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import api from '@/api/axios';
-// @ts-ignore
+// @ts-expect-error
 import AssignmentSubmission from '@/components/student/AssignmentSubmission.vue';
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue';
 
@@ -286,9 +286,27 @@ const isLoading = ref(true);
 const isSubmitting = ref(false);
 const submittingTaskId = ref<number | null>(null);
 
-const activeTasks = ref<any[]>([]);
-const overdueTasks = ref<any[]>([]);
-const completedTasks = ref<any[]>([]);
+interface ApiTask {
+  id?: number
+  course_component_id?: number
+  course?: { name?: string }
+  course_name?: string
+  title?: string
+  name?: string
+  due_date?: string
+  maxPoints?: number
+  raw_max?: number
+  status?: string
+  grade?: number | null
+  raw_score?: number | null
+  feedback?: string | null
+  submitted_file?: string
+  submission_url?: string
+}
+interface MappedTask { id: number; course: string; title: string; dueDate: string; wasDue: string; rawDueDate: Date | null; maxPoints: number; daysLate: number; status: string; grade: number | null; feedback: string | null; submittedFile: string }
+const activeTasks = ref<MappedTask[]>([]);
+const overdueTasks = ref<MappedTask[]>([]);
+const completedTasks = ref<MappedTask[]>([]);
 
 const toggleSubmission = (id: number) => {
   submittingTaskId.value = submittingTaskId.value === id ? null : id;
@@ -306,7 +324,7 @@ const fetchAssignments = async () => {
 
     const now = new Date();
 
-    assignments.forEach((task: any) => {
+    (assignments as ApiTask[]).forEach((task) => {
       const dueDate = task.due_date ? new Date(task.due_date) : null;
       
       const formattedDate = dueDate 
@@ -358,7 +376,7 @@ const handleSubmission = async (formData: FormData) => {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
-    const moveTask = (sourceArray: any[]) => {
+    const moveTask = (sourceArray: MappedTask[]) => {
       const index = sourceArray.findIndex(t => t.id === submittingTaskId.value);
       if (index !== -1) {
         const task = sourceArray.splice(index, 1)[0];

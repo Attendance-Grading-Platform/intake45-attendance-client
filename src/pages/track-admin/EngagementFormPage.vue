@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useEngagementStore } from '@/stores/engagement.store'
 import { useCohortStore } from '@/stores/cohort.store'
 import api from '@/api/axios'
-import type { StoreEngagementPayload, EngagementType } from '@/types/engagement.types'
+import type { StoreEngagementPayload } from '@/types/engagement.types'
 
 const router = useRouter()
 const engagementStore = useEngagementStore()
@@ -24,7 +24,7 @@ const payload = ref<StoreEngagementPayload>({
 })
 
 // Data options
-const instructors = ref<any[]>([])
+const instructors = ref<unknown[]>([])
 const daysOptions = [
   { value: 0, label: 'Sunday' },
   { value: 1, label: 'Monday' },

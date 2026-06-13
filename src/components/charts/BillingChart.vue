@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -39,7 +38,7 @@ const options: ChartOptions<'doughnut'> = {
 const plugins = [
   {
     id: 'centerText',
-    beforeDraw(chart: any) {
+    beforeDraw(chart: { ctx: CanvasRenderingContext2D; width: number; height: number }) {
       const { ctx, width, height } = chart
       ctx.restore()
       

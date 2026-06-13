@@ -42,4 +42,4 @@ export const rejectExcuse = (id: number) =>
     api.put<ApiResponse<ExcuseRequest>>(`/v1/excuses/${id}/reject`, { status: 'rejected' })
 
 export const getAbsentSessions = () =>
-    api.get<ApiResponse<any[]>>('/v1/me/absent-sessions')
+    api.get<ApiResponse<unknown[]>>('/v1/me/absent-sessions')

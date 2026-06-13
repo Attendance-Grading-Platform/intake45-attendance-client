@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { forgotPassword } from "@/api/modules/auth.api";
 import TextInput from "@/components/forms/TextInput.vue";
 import SubmitButton from "@/components/forms/SubmitButton.vue";

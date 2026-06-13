@@ -8,14 +8,14 @@ import type {
 } from '@/types/engagement.types'
 
 // --- Track Admin / Global Engagement Methods ---
-export const getEngagements = (params?: any) =>
+export const getEngagements = (params?: Record<string, unknown>) =>
     api.get<ApiResponse<Engagement[]>>('/v1/engagements', { params })
 
 export const getEngagementById = (id: number) =>
     api.get<ApiResponse<Engagement>>(`/v1/engagements/${id}`)
 
 export const createAdminEngagement = (data: StoreEngagementPayload) =>
-    api.post<ApiResponse<{ engagement: Engagement; sessions: any[]; sessions_count: number }>>('/v1/engagements', data)
+    api.post<ApiResponse<{ engagement: Engagement; sessions: unknown[]; sessions_count: number }>>('/v1/engagements', data)
 
 // --- Release Branch / Cohort specific methods ---
 interface ApiEngagement {
@@ -43,7 +43,7 @@ function mapEngagement(raw: ApiEngagement): Engagement {
 
 function getDaysOfWeekInRange(startDate: string, endDate: string): number[] {
     const days = new Set<number>()
-    let current = new Date(startDate + 'T12:00:00')
+    const current = new Date(startDate + 'T12:00:00')
     const end = new Date(endDate + 'T12:00:00')
 
     while (current <= end) {

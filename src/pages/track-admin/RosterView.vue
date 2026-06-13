@@ -346,7 +346,7 @@ const labGroups = computed(() => {
   const groups = new Set<string>()
   cohortStore.students.forEach(s => {
     if (s.enrolled_lab_groups && s.enrolled_lab_groups.length > 0) {
-      s.enrolled_lab_groups.forEach((lg: any) => {
+      s.enrolled_lab_groups.forEach((lg: { name?: string }) => {
         if (lg.name) groups.add(lg.name)
       })
     }
@@ -360,7 +360,7 @@ const studentDataRows = computed(() => {
   
   return cohortStore.students.map(student => {
     // find matching analytics record to get gpa & attendance rate
-    const ana = analyticsStudents.find((a: any) => a.student_id === student.id)
+    const ana = analyticsStudents.find((a: { student_id?: number; attendance_rate?: number; gpa?: number }) => a.student_id === student.id)
     
     const attendanceRate = ana ? Number(ana.attendance_rate) : 100
     // normalize 0-100 GPA to a 4.0 scale for display to match mockup

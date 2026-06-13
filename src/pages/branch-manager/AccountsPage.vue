@@ -15,8 +15,16 @@ import RoleBadge from '@/components/shared/RoleBadge.vue'
 import AccountFormModal from '@/components/forms/AccountFormModal.vue'
 import api from '@/api/axios' 
 
+interface UserAccount {
+    id: number
+    name: string
+    email: string
+    role: string
+    expiry_date?: string
+}
+
 // --- Core State ---
-const users = ref<any[]>([])
+const users = ref<UserAccount[]>([])
 const cohorts = ref<{ label: string; value: number }[]>([])
 const isLoading = ref(true)
 
@@ -26,7 +34,7 @@ const roleFilter = ref('')
 
 // --- Modal & Notification State ---
 const isModalOpen = ref(false)
-const selectedUser = ref<any | null>(null)
+const selectedUser = ref<UserAccount | null>(null)
 const successMessage = ref('')
 
 const roleOptions = [
@@ -64,7 +72,7 @@ async function fetchData() {
 
         const cohortRes = await api.get('/v1/cohorts')
         const rawCohorts = cohortRes.data?.data || cohortRes.data || []
-        cohorts.value = rawCohorts.map((c: any) => ({ label: c.name, value: c.id }))
+        cohorts.value = rawCohorts.map((c: { name: string; id: number }) => ({ label: c.name, value: c.id }))
     } catch (error) {
         console.error('Failed to fetch platform data', error)
     } finally {
@@ -83,7 +91,7 @@ function openCreate() {
 /**
  * Triggers the modal in "Edit" context, passing the target user.
  */
-function openEdit(user: any) {
+function openEdit(user: UserAccount) {
     selectedUser.value = user
     isModalOpen.value = true
 }

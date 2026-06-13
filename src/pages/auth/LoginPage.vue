@@ -63,10 +63,11 @@ const handleLogin = async () => {
     await authStore.login({ email: email.value, password: password.value });
     const role = authStore.user?.role || "student";
     router.push(`/${role.replace("_", "-")}/dashboard`);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Login attempt failed:", error);
-    const status = error.response?.status;
-    const message = error.response?.data?.message?.toLowerCase() || "";
+    const e = error as { response?: { status?: number; data?: { message?: string } } }
+    const status = e.response?.status;
+    const message = e.response?.data?.message?.toLowerCase() ?? "";
 
     if (status === 401) {
       errorState.value = 'invalid';

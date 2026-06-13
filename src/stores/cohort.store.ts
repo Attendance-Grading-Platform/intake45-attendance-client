@@ -52,7 +52,7 @@ export interface AttendanceRecord {
 export const useCohortStore = defineStore('cohort', () => {
     // 1. New Cohort List State
     const cohorts = ref<Cohort[]>([])
-    const students = ref<any[]>([])
+    const students = ref<unknown[]>([])
     const isLoading = ref(false)
 
     // 2. Drawer UI State
@@ -75,7 +75,9 @@ export const useCohortStore = defineStore('cohort', () => {
         isLoading.value = true
         try {
             const res = await cohortApi.getCohorts()
-            cohorts.value = res.data.data
+            cohorts.value = res.data.data ?? []
+        } catch {
+            cohorts.value = []
         } finally {
             isLoading.value = false
         }
@@ -85,7 +87,9 @@ export const useCohortStore = defineStore('cohort', () => {
         isLoading.value = true
         try {
             const res = await cohortApi.getCohortStudents(cohortId)
-            students.value = res.data.data
+            students.value = res.data.data ?? []
+        } catch {
+            students.value = []
         } finally {
             isLoading.value = false
         }

@@ -1,25 +1,21 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed } from 'vue'
 import dayjs from 'dayjs'
 import { useCohorts } from '@/composables/useCohorts'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import TextInput from '@/components/forms/TextInput.vue'
 import SubmitButton from '@/components/forms/SubmitButton.vue'
 
-const router = useRouter()
 const {
     cohorts,
     tracks,
     trackAdmins,
     loadingCohorts,
     loadingTracks,
-    loadingAdmins,
     creating,
     closing,
     formError,
     fieldErrors,
-    cohortsError,
     fetchAll,
     createCohort,
     closeCohort,
@@ -63,24 +59,6 @@ const selectedAdminObjects = computed(() =>
     trackAdmins.value.filter(a => form.admin_ids.includes(a.id))
 )
 
-const filteredCohortsCount = computed(() => {
-    return cohorts.value.filter(c => {
-        const matchesSearch = c.name.toLowerCase().includes(filters.search.toLowerCase())
-        const matchesTrack = filters.trackId === 'all' || c.track.id === filters.trackId
-        const matchesStatus = filters.status === 'all' || c.status === filters.status
-        return matchesSearch && matchesTrack && matchesStatus
-    }).length
-})
-
-const displayedCohorts = computed(() => {
-    return cohorts.value.filter(c => {
-        const matchesSearch = c.name.toLowerCase().includes(filters.search.toLowerCase())
-        const matchesTrack = filters.trackId === 'all' || c.track.id === filters.trackId
-        const matchesStatus = filters.status === 'all' || c.status === status
-        return matchesSearch && matchesTrack && matchesStatus
-    })
-})
-
 // Re-implement filtering locally for simplicity in template
 const filteredRows = computed(() => {
     return cohorts.value.filter(c => {
@@ -119,13 +97,14 @@ async function handleCreate() {
         })
         // Scroll to table
         document.getElementById('cohorts-table')?.scrollIntoView({ behavior: 'smooth' })
-    } catch (err) {
+    } catch {
         // Error handled in composable
     }
 }
 
-const cohortToClose = ref<any>(null)
-function confirmClose(cohort: any) {
+interface ClosableCohort { id: number; name?: string }
+const cohortToClose = ref<ClosableCohort | null>(null)
+function confirmClose(cohort: ClosableCohort) {
     cohortToClose.value = cohort
 }
 
@@ -134,7 +113,9 @@ async function handleClose() {
     try {
         await closeCohort(cohortToClose.value.id)
         cohortToClose.value = null
-    } catch (err) {}
+    } catch {
+        // handled by composable
+    }
 }
 
 function removeAdmin(id: number) {
