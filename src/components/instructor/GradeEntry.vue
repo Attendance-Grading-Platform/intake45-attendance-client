@@ -131,8 +131,9 @@ async function save() {
     const payload = Object.entries(scores.value)
       .filter(([, v]) => v !== null)
       .map(([key, raw_score]) => {
-        const [student_id, component_id] = key.split('_').map(Number)
-        return { student_id, component_id, raw_score }
+        const [student_id, course_component_id] = key.split('_').map(Number)
+        const raw_max = components.value.find(c => c.id === course_component_id)?.raw_max ?? 100
+        return { student_id, course_component_id, raw_score, raw_max }
       })
     await api.post('/v1/grades/batch', { grades: payload })
     saveMsg.value = 'Scores saved successfully.'
@@ -208,7 +209,7 @@ onMounted(load)
             v-if="hasChanges"
             type="button"
             @click="triggerFirstAudit"
-            class="h-11 px-6 rounded-[6px] border border-[#940002] text-[#940002] font-sans text-[11px] font-bold uppercase tracking-[1px] hover:bg-[#940002]/5 transition-all"
+            class="h-11 px-6 rounded-md border border-[#940002] text-[#940002] font-sans text-[11px] font-bold uppercase tracking-[1px] hover:bg-[#940002]/5 transition-all"
           >
             Audit Selection
           </button>
@@ -216,7 +217,7 @@ onMounted(load)
           <button
             type="button"
             :disabled="!hasChanges || isSaving"
-            class="h-11 px-8 rounded-[6px] font-sans text-[11px] font-bold uppercase tracking-[1px] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="h-11 px-8 rounded-md font-sans text-[11px] font-bold uppercase tracking-[1px] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             :class="hasChanges && !isSaving
               ? 'bg-[#940002] text-white hover:opacity-90'
               : 'bg-gray-200 text-gray-400'"
@@ -229,10 +230,10 @@ onMounted(load)
     </template>
 
     <Transition name="modal-fade">
-      <div v-if="isModalOpen && activeTargetInfo" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div v-if="isModalOpen && activeTargetInfo" class="fixed inset-0 z-100 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-[#1b1b1b]/40 backdrop-blur-sm" @click="isModalOpen = false"></div>
 
-        <div class="bg-white w-full max-w-[450px] rounded-[12px] border border-[#940002] shadow-2xl overflow-hidden relative z-10 p-6">
+        <div class="bg-white w-full max-w-112.5 rounded-xl border border-[#940002] shadow-2xl overflow-hidden relative z-10 p-6">
           <h3 class="font-serif text-[22px] text-[#1b1b1b] mb-4">Grade Override Audit</h3>
 
           <div class="space-y-4 font-sans">
@@ -248,7 +249,7 @@ onMounted(load)
                 v-model.number="overrideScore"
                 :max="activeTargetInfo.max"
                 min="0"
-                class="w-full border border-[#C9BDB8] rounded-[6px] p-2 text-sm focus:ring-0 focus:border-[#940002] font-mono"
+                class="w-full border border-[#C9BDB8] rounded-md p-2 text-sm focus:ring-0 focus:border-[#940002] font-mono"
               />
               <span class="text-[10px] text-[#4c4546] opacity-60 mt-1 block">Maximum allowed: {{ activeTargetInfo.max }} pts</span>
             </div>
@@ -258,7 +259,7 @@ onMounted(load)
               <textarea
                 v-model="instructorNotes"
                 @input="noteError = false"
-                class="w-full min-h-[90px] resize-none border rounded-[6px] p-3 text-sm focus:ring-0 placeholder-[#7e7576]/40"
+                class="w-full min-h-22.5 resize-none border rounded-md p-3 text-sm focus:ring-0 placeholder-[#7e7576]/40"
                 :class="noteError ? 'border-red-600 bg-red-50/50' : 'border-[#C9BDB8] focus:border-[#940002]'"
                 placeholder="Provide feedback explaining the score deviation audit details..."
               ></textarea>
@@ -269,8 +270,8 @@ onMounted(load)
           </div>
 
           <div class="flex justify-end gap-3 mt-6 border-t border-[#C9BDB8]/30 pt-4">
-            <button type="button" class="px-4 py-2 border border-[#C9BDB8] text-xs font-bold rounded-[6px]" @click="isModalOpen = false">CANCEL</button>
-            <button type="button" class="px-5 py-2 bg-[#940002] text-white text-xs font-bold rounded-[6px]" @click="confirmOverride">CONFIRM OVERRIDE</button>
+            <button type="button" class="px-4 py-2 border border-[#C9BDB8] text-xs font-bold rounded-md" @click="isModalOpen = false">CANCEL</button>
+            <button type="button" class="px-5 py-2 bg-[#940002] text-white text-xs font-bold rounded-md" @click="confirmOverride">CONFIRM OVERRIDE</button>
           </div>
         </div>
       </div>

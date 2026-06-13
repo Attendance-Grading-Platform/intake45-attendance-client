@@ -47,7 +47,7 @@ const isLoading = ref(true)
 const cohorts = ref<Cohort[]>([{ id: 1, name: 'Engineering Batch A-24' }])
 const selectedCohort = ref(1)
 const dateRange = ref('Oct 01 - Oct 31, 2023')
-const filterType = ref<'ALL' | 'INTERNAL' | 'EXTERNAL'>('ALL')
+const filterType = ref<'all' | 'internal' | 'external'>('all')
 const summary = ref<BillingSummary>(MOCK_SUMMARY)
 const logs = ref<InstructorLog[]>(MOCK_LOGS)
 const isExporting = ref(false)
@@ -56,7 +56,7 @@ const exportMsg = ref<string | null>(null)
 async function loadData() {
   isLoading.value = true
   try {
-    const res = await api.get('/v1/admin/billing', { params: { cohort: selectedCohort.value, type: filterType.value }})
+    const res = await api.get('/v1/admin/billing', { params: { cohort: selectedCohort.value, type: filterType.value === 'all' ? undefined : filterType.value }})
     if (res.data?.data) {
       summary.value = res.data.data.summary ?? MOCK_SUMMARY
       logs.value = res.data.data.logs ?? MOCK_LOGS
@@ -70,8 +70,8 @@ async function loadData() {
 }
 
 const filteredLogs = computed(() => {
-  if (filterType.value === 'ALL') return logs.value
-  return logs.value.filter(l => l.type === filterType.value)
+  if (filterType.value === 'all') return logs.value
+  return logs.value.filter(l => l.type === filterType.value.toUpperCase())
 })
 
 const formatCurrency = (value: number) => {
@@ -121,11 +121,11 @@ onMounted(loadData)
       </div>
 
       <div class="flex border border-[#C9BDB8] rounded-full overflow-hidden text-[11px] font-bold uppercase tracking-[1px]">
-        <button v-for="t in (['ALL', 'INTERNAL', 'EXTERNAL'] as const)" :key="t"
+        <button v-for="t in (['all', 'internal', 'external'] as const)" :key="t"
           @click="filterType = t; loadData();"
           class="px-6 py-2.5 transition-colors"
           :class="filterType === t ? 'bg-[#940002] text-white' : 'bg-white text-[#4c4546] hover:bg-gray-50'">
-          {{ t }}
+          {{ t.toUpperCase() }}
         </button>
       </div>
     </div>

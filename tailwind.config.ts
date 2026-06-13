@@ -16,6 +16,10 @@ const config: Config = {
           redHover: '#7a0002',   // primary hover (8% darker)
           redPress: '#600001',   // primary pressed (12% darker)
           surface:  '#E6DDD4',   // page background (warm rose-beige)
+          black:    '#1b1b1b',   // deep neutral black used in track-admin/instructor UIs
+          muted:    '#4c4546',   // secondary label text (warm dark grey)
+          danger:   '#ba1a1a',   // error/warning state used in grade UI
+          cream:    '#ebdfc2',   // late-attendance warm tint
         },
  
         // ─── Neutrals ──────────────────────────────────────────────

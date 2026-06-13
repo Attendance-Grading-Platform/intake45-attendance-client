@@ -172,7 +172,7 @@ watch(selectedCohortId, (id) => {
 
                 <button
                     type="button"
-                    class="h-[38px] px-4 text-sm font-sans rounded-[6px] bg-[#8B1A1A] text-white hover:bg-[#7a0002] transition-colors whitespace-nowrap"
+                    class="h-9.5 px-4 text-sm font-sans rounded-md bg-[#8B1A1A] text-white hover:bg-[#7a0002] transition-colors whitespace-nowrap"
                     @click="showAddModal = true"
                 >
                     Add Course
@@ -183,7 +183,7 @@ watch(selectedCohortId, (id) => {
         <!-- Error -->
         <div
             v-if="error"
-            class="mb-4 px-4 py-3 rounded-[6px] border border-danger/30 bg-danger-light text-sm font-sans text-danger"
+            class="mb-4 px-4 py-3 rounded-md border border-danger/30 bg-danger-light text-sm font-sans text-danger"
         >
             {{ error }}
         </div>
@@ -215,7 +215,7 @@ watch(selectedCohortId, (id) => {
                 </p>
                 <button
                     type="button"
-                    class="h-[38px] px-5 text-sm font-sans rounded-[6px] bg-[#8B1A1A] text-white hover:bg-[#7a0002] transition-colors"
+                    class="h-9.5 px-5 text-sm font-sans rounded-md bg-[#8B1A1A] text-white hover:bg-[#7a0002] transition-colors"
                     @click="showAddModal = true"
                 >
                     Add Course
@@ -272,7 +272,7 @@ watch(selectedCohortId, (id) => {
                                 </td>
                                 <td class="py-4 px-4 text-center">
                                     <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded-[6px] text-xs font-medium tabular-nums"
+                                        class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium tabular-nums"
                                         :class="course.total_weight === 100
                                             ? 'bg-success-light text-success'
                                             : 'bg-danger-light text-danger'"
@@ -283,13 +283,13 @@ watch(selectedCohortId, (id) => {
                                 <td class="py-4 px-4 text-center">
                                     <span
                                         v-if="course.total_weight === 100"
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-xs font-medium bg-success-light text-success"
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-success-light text-success"
                                     >
                                         Ready
                                     </span>
                                     <span
                                         v-else
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-xs font-medium bg-warning-light text-warning"
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-warning-light text-warning"
                                     >
                                         Incomplete
                                     </span>
@@ -298,7 +298,7 @@ watch(selectedCohortId, (id) => {
                                     <div class="flex items-center justify-end gap-2">
                                         <button
                                             type="button"
-                                            class="p-1.5 text-neutral-500 hover:text-brand-red transition-colors rounded-[6px] hover:bg-neutral-50"
+                                            class="p-1.5 text-neutral-500 hover:text-brand-red transition-colors rounded-md hover:bg-neutral-50"
                                             title="Edit course weights"
                                             @click="openEdit(course, $event)"
                                         >
@@ -308,7 +308,7 @@ watch(selectedCohortId, (id) => {
                                         </button>
                                         <button
                                             type="button"
-                                            class="p-1.5 text-neutral-500 hover:text-danger transition-colors rounded-[6px] hover:bg-neutral-50"
+                                            class="p-1.5 text-neutral-500 hover:text-danger transition-colors rounded-md hover:bg-neutral-50"
                                             title="Delete course"
                                             @click="openDelete(course, $event)"
                                         >

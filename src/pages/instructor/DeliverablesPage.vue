@@ -60,7 +60,7 @@ function getDaysBadgeClass(days: number): string {
 
 <template>
   <div class="min-h-screen bg-[#E6DDD4] text-[#1b1b1b] font-sans pb-16">
-    <div class="max-w-[1280px] mx-auto px-6 py-10">
+    <div class="max-w-7xl mx-auto px-6 py-10">
 
       <div class="mb-10">
         <span class="font-sans text-[11px] font-bold text-[#940002] uppercase tracking-[1.5px] mb-2 block">GRADING</span>
@@ -81,27 +81,27 @@ function getDaysBadgeClass(days: number): string {
       </div>
 
       <div class="flex flex-wrap gap-6 items-center mb-8 bg-white/40 p-4 rounded-lg border border-[#C9BDB8]/40">
-        <div class="flex flex-col gap-1.5 min-w-[200px]">
+        <div class="flex flex-col gap-1.5 min-w-50">
           <span class="font-sans text-[11px] font-bold text-[#4c4546] tracking-[1px]">COURSE SELECTOR</span>
-          <select v-model="selectedCourse" class="bg-white border border-[#C9BDB8] rounded-[6px] px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
+          <select v-model="selectedCourse" class="bg-white border border-[#C9BDB8] rounded-md px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
             <option>Mechanical Systems II</option>
             <option>Applied Hydraulics</option>
             <option>Industrial Safety</option>
           </select>
         </div>
 
-        <div class="flex flex-col gap-1.5 min-w-[160px]">
+        <div class="flex flex-col gap-1.5 min-w-40">
           <span class="font-sans text-[11px] font-bold text-[#4c4546] tracking-[1px]">LAB GROUP</span>
-          <select v-model="selectedGroup" class="bg-white border border-[#C9BDB8] rounded-[6px] px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
+          <select v-model="selectedGroup" class="bg-white border border-[#C9BDB8] rounded-md px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
             <option>All Groups</option>
             <option>Group Alpha</option>
             <option>Group Beta</option>
           </select>
         </div>
 
-        <div class="flex flex-col gap-1.5 min-w-[160px]">
+        <div class="flex flex-col gap-1.5 min-w-40">
           <span class="font-sans text-[11px] font-bold text-[#4c4546] tracking-[1px]">STATUS FILTER</span>
-          <select v-model="selectedStatus" class="bg-white border border-[#C9BDB8] rounded-[6px] px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
+          <select v-model="selectedStatus" class="bg-white border border-[#C9BDB8] rounded-md px-4 py-2 text-sm focus:ring-0 focus:border-[#940002]">
             <option>Needs Grading</option>
             <option>Completed</option>
             <option>Flagged</option>
@@ -109,7 +109,7 @@ function getDaysBadgeClass(days: number): string {
         </div>
 
         <div class="flex-1"></div>
-        <button type="button" class="sm:self-end px-6 py-2.5 bg-[#940002] text-white font-sans font-bold text-sm rounded-[6px] hover:opacity-95 transition-all uppercase tracking-[0.5px]">
+        <button type="button" class="sm:self-end px-6 py-2.5 bg-[#940002] text-white font-sans font-bold text-sm rounded-md hover:opacity-95 transition-all uppercase tracking-[0.5px]">
           Apply Filters
         </button>
       </div>

@@ -61,13 +61,12 @@ function getAttendanceClass(status: 'full' | 'late' | 'absent'): string {
 }
 
 function triggerReportDownload() {
-  console.log('Downloading full auditor report...')
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-[#E6DDD4] text-[#1b1b1b] font-sans selection:bg-[#940002] selection:text-white pb-16 md:pb-6">
-    <div class="max-w-[1280px] mx-auto px-6 py-10">
+    <div class="max-w-7xl mx-auto px-6 py-10">
 
       <header class="mb-10">
         <span class="font-sans text-[11px] font-bold text-[#4c4546] uppercase tracking-[1.5px] mb-2 block">
@@ -76,7 +75,7 @@ function triggerReportDownload() {
         <h2 class="font-serif text-[36px] text-[#1b1b1b] leading-tight font-medium mb-4">
           Cohort overview
         </h2>
-        <div class="h-[1px] bg-[#C9BDB8] w-full"></div>
+        <div class="h-px bg-[#C9BDB8] w-full"></div>
       </header>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -113,7 +112,7 @@ function triggerReportDownload() {
                 <span class="w-12 text-[10px] font-bold text-[#4c4546] uppercase tracking-[0.5px]">
                   {{ item.range }}
                 </span>
-                <div class="flex-grow bg-[#eeeeee] h-8 overflow-hidden rounded-sm relative">
+                <div class="grow bg-[#eeeeee] h-8 overflow-hidden rounded-sm relative">
                   <div class="absolute top-0 left-0 h-full transition-all duration-500" :class="item.colorClass" :style="{ width: item.percentage + '%' }"></div>
                   <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold font-mono tabular-nums text-[#1b1b1b]">
                     {{ item.count }} students
@@ -132,10 +131,10 @@ function triggerReportDownload() {
             <h3 class="font-sans text-[18px] font-bold text-[#1b1b1b]">Attendance this week</h3>
             <div class="flex gap-3">
               <span class="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-[0.5px]">
-                <span class="w-3 h-3 rounded-[2px] bg-[#940002]"></span> Full
+                <span class="w-3 h-3 rounded-xs bg-[#940002]"></span> Full
               </span>
               <span class="flex items-center gap-1.5 text-[10px] uppercase font-bold tracking-[0.5px]">
-                <span class="w-3 h-3 rounded-[2px] bg-[#ebdfc2]"></span> Late
+                <span class="w-3 h-3 rounded-xs bg-[#ebdfc2]"></span> Late
               </span>
             </div>
           </div>
@@ -150,7 +149,7 @@ function triggerReportDownload() {
             <div
               v-for="(cell, index) in attendanceWeek"
               :key="index"
-              class="w-full h-12 rounded-[4px] transition-opacity duration-200 hover:opacity-90"
+              class="w-full h-12 rounded-sm transition-opacity duration-200 hover:opacity-90"
               :class="getAttendanceClass(cell.status)"
             ></div>
           </div>
@@ -192,7 +191,7 @@ function triggerReportDownload() {
           <button
             type="button"
             @click="triggerReportDownload"
-            class="w-full mt-8 border border-[#940002] text-[#940002] font-bold text-[10px] uppercase tracking-[1px] py-3 hover:bg-[#940002] hover:text-white transition-all duration-200 rounded-[6px]"
+            class="w-full mt-8 border border-[#940002] text-[#940002] font-bold text-[10px] uppercase tracking-[1px] py-3 hover:bg-[#940002] hover:text-white transition-all duration-200 rounded-md"
           >
             Download Full Auditor Report
           </button>

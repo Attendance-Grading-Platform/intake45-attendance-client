@@ -41,7 +41,7 @@ const emit = defineEmits<{
                         <button
                             v-if="!hideCancel"
                             type="button"
-                            class="h-[38px] px-4 text-sm font-sans rounded-[6px] border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
+                            class="h-9.5 px-4 text-sm font-sans rounded-md border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
                             :disabled="loading"
                             @click="emit('cancel')"
                         >
@@ -50,7 +50,7 @@ const emit = defineEmits<{
 
                         <button
                             type="button"
-                            class="h-[38px] px-4 text-sm font-sans rounded-[6px] transition-colors disabled:opacity-60 flex items-center gap-2"
+                            class="h-9.5 px-4 text-sm font-sans rounded-md transition-colors disabled:opacity-60 flex items-center gap-2"
                             :class="danger
                                 ? 'border border-danger text-danger hover:bg-danger-light'
                                 : 'bg-brand-red text-brand-surface hover:bg-[#7a0002]'"

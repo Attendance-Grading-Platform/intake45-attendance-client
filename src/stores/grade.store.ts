@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Grade } from '@/api/modules/grade.api'
 import * as gradeApi from '@/api/modules/grade.api'
-import axios from 'axios'
+import api from '@/api/axios'
 
 // Shape returned by GET /api/v1/grades
 export interface GradeEntry {
@@ -59,7 +59,7 @@ export const useGradeStore = defineStore('grade', () => {
     for (const [key, raw_score] of entries) {
       const [studentId, componentId] = key.split('_').map(Number)
       try {
-        await axios.post('/api/v1/grades', {
+        await api.post('/v1/grades', {
           student_id:          studentId,
           course_component_id: componentId,
           raw_score,
@@ -97,7 +97,7 @@ export const useGradeStore = defineStore('grade', () => {
     }
 
     try {
-      await axios.patch(`/api/v1/grades/${gradeId}/override`, {
+      await api.patch(`/v1/grades/${gradeId}/override`, {
         new_score: payload.new_score,
         note:      payload.note.trim(),
       })
@@ -117,7 +117,7 @@ export const useGradeStore = defineStore('grade', () => {
   async function fetchCohortGrades(cohortId: number): Promise<GradeEntry[]> {
     isLoading.value = true
     try {
-      const res = await axios.get(`/api/v1/cohorts/${cohortId}/grades`)
+      const res = await api.get(`/v1/cohorts/${cohortId}/grades`)
       return res.data.data ?? []
     } finally {
       isLoading.value = false

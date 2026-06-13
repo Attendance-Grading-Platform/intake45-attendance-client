@@ -85,16 +85,16 @@ function labelFor(comp: GradeComponent): string {
         <thead>
           <tr class="bg-[#F5EDEA]/30">
             <th
-              class="sticky left-0 z-10 bg-[#F5EDEA]/40 py-4 px-6 text-left text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold border-b border-r border-[#C9BDB8] min-w-[240px] whitespace-nowrap"
+              class="sticky left-0 z-10 bg-[#F5EDEA]/40 py-4 px-6 text-left text-[11px] text-[#4c4546] uppercase tracking-[1.5px] font-bold border-b border-r border-[#C9BDB8] min-w-60 whitespace-nowrap"
             >
               Student Name
             </th>
             <th
               v-for="comp in components"
               :key="comp.id"
-              class="py-4 px-4 text-center text-[11px] text-[#1b1b1b] uppercase tracking-[1px] font-bold border-b border-r border-[#C9BDB8]/40 min-w-[140px] last:border-r-0"
+              class="py-4 px-4 text-center text-[11px] text-[#1b1b1b] uppercase tracking-[1px] font-bold border-b border-r border-[#C9BDB8]/40 min-w-35 last:border-r-0"
             >
-              <div class="truncate max-w-[160px]">{{ labelFor(comp) }}</div>
+              <div class="truncate max-w-40">{{ labelFor(comp) }}</div>
               <div class="text-[10px] text-[#4c4546] font-mono font-normal tracking-normal normal-case mt-1">
                 MAX {{ comp.raw_max }} pts
               </div>

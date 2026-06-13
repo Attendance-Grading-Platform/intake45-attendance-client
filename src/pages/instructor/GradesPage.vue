@@ -54,7 +54,7 @@ function handleSave() {
 
 <template>
   <div class="min-h-screen bg-[#E6DDD4] text-[#1b1b1b] font-sans pb-20">
-    <div class="max-w-[1280px] mx-auto px-6 py-10">
+    <div class="max-w-7xl mx-auto px-6 py-10">
 
       <header class="mb-10 flex justify-between items-end">
         <div>
@@ -76,7 +76,7 @@ function handleSave() {
           <button
             @click="handleSave"
             :disabled="isSaving"
-            class="bg-[#940002] text-white px-8 py-3 rounded-[6px] font-bold text-[11px] uppercase tracking-[1px] hover:opacity-90 transition-all disabled:opacity-50"
+            class="bg-[#940002] text-white px-8 py-3 rounded-md font-bold text-[11px] uppercase tracking-[1px] hover:opacity-90 transition-all disabled:opacity-50"
           >
             {{ isSaving ? 'Synchronizing...' : 'Save All Changes' }}
           </button>
@@ -88,7 +88,7 @@ function handleSave() {
           <table class="w-full border-collapse">
             <thead>
               <tr class="bg-[#F5EDEA] border-b border-[#C9BDB8]">
-                <th class="py-4 px-6 text-left font-bold text-[11px] text-[#4c4546] uppercase tracking-[1px] w-[280px] sticky left-0 bg-[#F5EDEA] z-10">
+                <th class="py-4 px-6 text-left font-bold text-[11px] text-[#4c4546] uppercase tracking-[1px] w-70 sticky left-0 bg-[#F5EDEA] z-10">
                   Student Name
                 </th>
                 <th
@@ -96,7 +96,7 @@ function handleSave() {
                   :key="comp.id"
                   class="py-4 px-6 text-center border-l border-[#C9BDB8]/40"
                 >
-                  <p class="font-bold text-[11px] text-[#1b1b1b] uppercase tracking-[0.5px] truncate max-w-[150px]">
+                  <p class="font-bold text-[11px] text-[#1b1b1b] uppercase tracking-[0.5px] truncate max-w-37.5">
                     {{ comp.name }}
                   </p>
                   <p class="text-[9px] text-[#4c4546] font-mono mt-1">MAX: {{ comp.max }} pts</p>
