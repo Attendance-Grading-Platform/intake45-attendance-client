@@ -6,11 +6,15 @@ import api from '@/api/axios'
 
 // Shape returned by GET /api/v1/grades
 export interface GradeEntry {
+  id?: number
   student_id: number
+  student_name?: string
   course_component_id: number
+  component_name?: string
   raw_score: number | null
   raw_max: number
   graded_by?: number
+  graded_by_name?: string
   overridden_by?: number | null
   original_value?: number | null
   override_note?: string | null
@@ -157,7 +161,21 @@ export const useGradeStore = defineStore('grade', () => {
     isLoading.value = true
     try {
       const res = await api.get(`/v1/cohorts/${cohortId}/grades`)
-      return res.data.data ?? []
+      return (res.data.data ?? []).map((g: any) => ({
+        id: g.id,
+        student_id: g.student_id,
+        student_name: g.student?.name || 'Unknown',
+        course_component_id: g.course_component_id,
+        component_name: g.course_component?.name || g.course_component?.type || 'Unknown Component',
+        raw_score: g.raw_score,
+        raw_max: g.raw_max,
+        graded_by: g.graded_by,
+        graded_by_name: g.graded_by_user?.name || null, // Assuming if backend loads it, or we just leave it undefined
+        overridden_by: g.overridden_by,
+        original_value: g.original_value,
+        override_note: g.override_note,
+        normalized_score: g.normalized_score
+      }))
     } finally {
       isLoading.value = false
     }
