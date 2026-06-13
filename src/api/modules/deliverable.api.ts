@@ -17,7 +17,7 @@ export const getMyDeliverables = () =>
     api.get<ApiResponse<Deliverable[]>>('/v1/me/deliverables')
 
 export const submitDeliverable = (data: FormData) =>
-    api.post<ApiResponse<any>>('/v1/me/deliverables', data, {
+    api.post<ApiResponse<unknown>>('/v1/me/deliverables', data, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

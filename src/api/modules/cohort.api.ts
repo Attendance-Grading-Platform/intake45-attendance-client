@@ -6,7 +6,7 @@ export const getCohorts = () =>
     api.get<ApiResponse<Cohort[]>>('/v1/cohorts')
 
 export const getCohortStudents = (cohortId: number) =>
-    api.get<ApiResponse<any[]>>(`/v1/cohorts/${cohortId}/students`)
+    api.get<ApiResponse<unknown[]>>(`/v1/cohorts/${cohortId}/students`)
 
 export const getCohort = (id: number) =>
     api.get<ApiResponse<CohortDetail>>(`/v1/cohorts/${id}`)

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import * as analyticsApi from '@/api/modules/analytics.api'
 
 export const useAnalyticsStore = defineStore('analytics', () => {
-    const cohortAnalytics = ref<any>(null)
+    const cohortAnalytics = ref<unknown>(null)
     const isLoading = ref(false)
 
     async function fetchCohortAnalytics(cohortId: number) {

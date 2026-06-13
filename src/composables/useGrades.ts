@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import * as gradeApi from '@/api/modules/grade.api'
 
 export function useGrades() {
-    const grades = ref<any[]>([])
+    const grades = ref<unknown[]>([])
     const loading = ref<boolean>(false)
     const error = ref<string | null>(null)
 

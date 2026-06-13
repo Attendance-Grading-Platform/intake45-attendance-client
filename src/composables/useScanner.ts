@@ -52,15 +52,17 @@ export function useScanner(containerId: string) {
 
             successMsg.value = "Attendance recorded successfully!"
             
-        } catch (err: any) {
+        } catch (err) {
             console.error("Scan error:", err)
             if (err instanceof SyntaxError) {
                 errorMsg.value = "Invalid QR Code format. Expected JSON."
-            } else if (err.response) {
-                // Laravel API Error
-                errorMsg.value = err.response.data?.message || "Server rejected the scan."
             } else {
-                errorMsg.value = err.message || "An unknown error occurred."
+                const e = err as { response?: { data?: { message?: string } }; message?: string }
+                if (e.response) {
+                    errorMsg.value = e.response.data?.message ?? "Server rejected the scan."
+                } else {
+                    errorMsg.value = e.message ?? "An unknown error occurred."
+                }
             }
         } finally {
             // Resume scanning after 2 seconds
@@ -75,9 +77,9 @@ export function useScanner(containerId: string) {
         }
     }
 
-    const onScanFailure = (error: any) => {
+    const onScanFailure = (_error: unknown) => {
         // We ignore frequent failure errors (like when no QR is in frame)
-        // console.warn(`Code scan error = ${error}`)
+        // console.warn(`Code scan error = ${_error}`)
     }
 
     const destroyScanner = () => {

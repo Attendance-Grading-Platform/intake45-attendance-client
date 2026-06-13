@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.store'
 import { useScanner } from '@/composables/useScanner'
 import { getActiveSessions } from '@/api/modules/attendance.api'
@@ -9,7 +9,6 @@ const authStore = useAuthStore()
 
 const {
   initScanner,
-  destroyScanner,
   isScanning,
   errorMsg,
   successMsg
@@ -21,8 +20,15 @@ const isLoading = ref(true)
 const activeSessionId = ref<number | null>(null)
 
 // Upcoming & History State
-const upcomingSessions = ref<any[]>([])
-const pastSessions = ref<any[]>([])
+const upcomingSessions = ref<unknown[]>([])
+const pastSessions = ref<unknown[]>([])
+
+const hasNoSessions = computed(() =>
+  !isLoading.value &&
+  !activeSessionId.value &&
+  upcomingSessions.value.length === 0 &&
+  pastSessions.value.length === 0
+)
 
 onMounted(async () => {
   try {
@@ -44,10 +50,12 @@ onMounted(async () => {
       const todayISO = now.toISOString().split('T')[0]
       const currentTime = now.toTimeString().split(' ')[0] // H:i:s
 
-      const allSessions: any[] = []
-      
+      interface EngagementApi { type?: string; cohorts?: Array<{ name?: string }>; daily_start_time?: string; daily_end_time?: string; sessions?: Array<{ session_date?: string; start_time?: string; end_time?: string }> }
+      interface MappedSession { session_date?: string; start_time?: string; end_time?: string; type?: string; cohort_name?: string }
+      const allSessions: MappedSession[] = []
+
       engagements.forEach((eng: any) => {
-        eng.sessions.forEach((sess: any) => {
+        (eng.sessions ?? []).forEach((sess: any) => {
           allSessions.push({
             ...sess,
             type: eng.type,
@@ -60,15 +68,19 @@ onMounted(async () => {
 
       // Sort chronological
       allSessions.sort((a, b) => {
-        const dateA = a.session_date.split('T')[0]
-        const dateB = b.session_date.split('T')[0]
-        if (dateA !== dateB) return dateA.localeCompare(dateB)
-        return a.start_time.localeCompare(b.start_time)
+        const dateA = a.session_date || '';
+        const dateB = b.session_date || '';
+        const dateAStr = dateA.split('T')[0] || '';
+        const dateBStr = dateB.split('T')[0] || '';
+        if (dateAStr !== dateBStr) return dateAStr.localeCompare(dateBStr);
+        const timeA = a.start_time || '';
+        const timeB = b.start_time || '';
+        return timeA.localeCompare(timeB);
       })
 
       // Separate into Upcoming and Past
-      allSessions.forEach(sess => {
-        const sessDate = sess.session_date.split('T')[0] || ''
+      allSessions.forEach((sess: any) => {
+        const sessDate = sess.session_date?.split('T')[0] || ''
         const sessEndTime = sess.end_time || '23:59:59'
         
         // It's past if the date is before today, OR if it's today but the end_time has passed
@@ -184,6 +196,19 @@ function formatTime(t: string) {
           <p class="text-sm text-slate-400 font-medium">Processing scan... Please wait.</p>
         </div>
       </div>
+    </div>
+
+    <!-- State: No Sessions Assigned -->
+    <div v-else-if="hasNoSessions" class="bg-white rounded-xl shadow-sm border border-slate-200 p-16 flex flex-col items-center justify-center text-center">
+      <div class="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center mb-5">
+        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-800 mb-2">No Scheduled Sessions Found</h3>
+      <p class="text-slate-500 text-sm max-w-sm">
+        You have no upcoming or past sessions assigned for this intake. The QR scanner will appear here automatically when a session is live.
+      </p>
     </div>
 
     <!-- State: Waiting Mode (No Active Session) -->

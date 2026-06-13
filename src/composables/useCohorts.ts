@@ -33,8 +33,9 @@ export function useCohorts() {
         try {
             const res = await listCohorts()
             cohorts.value = res.data.data
-        } catch (err: any) {
-            console.error('[useCohorts] listCohorts failed:', err?.response?.status, err?.message)
+        } catch (err) {
+            const e = err as { response?: { status?: number }; message?: string }
+            console.error('[useCohorts] listCohorts failed:', e.response?.status, e.message)
             cohortsError.value = 'Could not load cohorts.'
         } finally {
             loadingCohorts.value = false
@@ -44,8 +45,9 @@ export function useCohorts() {
             const res = await listTracks()
             tracks.value = res.data.data
             console.log('[useCohorts] tracks loaded:', tracks.value.length)
-        } catch (err: any) {
-            console.error('[useCohorts] listTracks failed:', err?.response?.status, err?.message)
+        } catch (err) {
+            const _e = err as { response?: { status?: number }; message?: string }
+            console.error('[useCohorts] listTracks failed:', _e.response?.status, _e.message)
         } finally {
             loadingTracks.value = false
         }
@@ -54,8 +56,9 @@ export function useCohorts() {
             const res = await listUsers('track_admin')
             trackAdmins.value = res.data.data
             console.log('[useCohorts] admins loaded:', trackAdmins.value.length)
-        } catch (err: any) {
-            console.error('[useCohorts] listUsers failed:', err?.response?.status, err?.message)
+        } catch (err) {
+            const _e2 = err as { response?: { status?: number }; message?: string }
+            console.error('[useCohorts] listUsers failed:', _e2.response?.status, _e2.message)
         } finally {
             loadingAdmins.value = false
         }
@@ -69,15 +72,19 @@ export function useCohorts() {
         try {
             await apiCreateCohort(data)
             await fetchAll() // Refresh table
-        } catch (err: any) {
-            if (err.response?.status === 422) {
-                const message = err.response.data.message
+        } catch (err) {
+            const e = err as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
+            if (e.response?.status === 422) {
+                const message = e.response.data?.message ?? ''
                 if (message.toLowerCase().includes('active cohort')) {
                     formError.value = 'This track already has an active cohort. You must close the existing cohort before creating a new one.'
                 } else {
-                    fieldErrors.value = err.response.data.errors || {}
+                    const errs = e.response.data?.errors ?? {}
+                    const mapped: Record<string, string> = {}
+                    for (const k in errs) mapped[k] = errs[k][0]
+                    fieldErrors.value = mapped
                 }
-            } else if (err.response?.status === 403) {
+            } else if (e.response?.status === 403) {
                 formError.value = 'Only Branch Managers can create cohorts.'
             } else {
                 formError.value = 'Something went wrong. Please try again.'
@@ -93,7 +100,7 @@ export function useCohorts() {
         try {
             await apiCloseCohort(id)
             await fetchAll()
-        } catch (err: any) {
+        } catch (err) {
             console.error('Close cohort failed:', err)
             throw err
         } finally {

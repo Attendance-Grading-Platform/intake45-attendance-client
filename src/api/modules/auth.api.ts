@@ -19,5 +19,5 @@ export const getMe = () =>
 export const forgotPassword = (email: string) =>
     api.post<ApiResponse<void>>('/auth/forgot-password', { email })
 
-export const resetPassword = (data: any) =>
+export const resetPassword = (data: Record<string, string>) =>
     api.post<ApiResponse<void>>('/auth/reset-password', data)

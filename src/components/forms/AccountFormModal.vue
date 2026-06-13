@@ -15,10 +15,24 @@ import TextInput from '@/components/forms/TextInput.vue'
 import SelectInput from '@/components/forms/SelectInput.vue'
 import api from '@/api/axios'
 
+interface EditableUser {
+    id: number
+    name?: string
+    email?: string
+    role?: string
+    expiry_date?: string
+    cohort_id?: number | string
+    compensation_type?: string
+    hourly_rate?: string | number
+    fixed_salary?: string | number
+    enrolled_cohorts?: any[]
+    administered_cohorts?: any[]
+}
+
 // --- Props & Emits ---
 const props = defineProps<{
     isOpen: boolean
-    editUser: any | null // Pass null to Create, or a User object to Edit
+    editUser: EditableUser | null
     cohorts: { label: string; value: number }[]
 }>()
 
@@ -112,15 +126,15 @@ watch(() => props.isOpen, (newVal) => {
 
             // Hydrate the form
             formData.value = {
-                name: user.name, 
-                email: user.email, 
+                name: user.name ?? '', 
+                email: user.email ?? '', 
                 password: '', // Kept blank intentionally. Only update if user types here.
-                role: user.role,
-                expiry_date: formattedExpiry, 
+                role: user.role ?? '',
+                expiry_date: formattedExpiry ?? '', 
                 cohort_id: currentCohortId,
-                compensation_type: user.compensation_type || '',
-                hourly_rate: user.hourly_rate || '', 
-                fixed_salary: user.fixed_salary || ''
+                compensation_type: (user.compensation_type || '') as string,
+                hourly_rate: (user.hourly_rate || '') as string, 
+                fixed_salary: (user.fixed_salary || '') as string
             }
         } else {
             // Reset to empty state for Provisioning
@@ -148,7 +162,7 @@ async function handleSave() {
 
     try {
         // 1. Construct strict payload
-        const payload: any = {
+        const payload: Record<string, unknown> = {
             name: formData.value.name, 
             email: formData.value.email,
             role: formData.value.role, 
@@ -161,7 +175,7 @@ async function handleSave() {
         }
 
         // Attach dynamic cohort data
-        if (['student', 'track_admin'].includes(payload.role)) {
+        if (['student', 'track_admin'].includes(payload.role as string)) {
             payload.cohort_id = formData.value.cohort_id
         }
 
@@ -174,27 +188,26 @@ async function handleSave() {
 
         // 2. Transmit to backend
         if (isEditing.value) {
-            await api.put(`/v1/auth/users/${props.editUser.id}`, payload)
+            await api.put(`/v1/auth/users/${props.editUser?.id}`, payload)
             emit('success', 'User updated successfully!')
         } else {
             await api.post('/v1/auth/users', payload)
             emit('success', 'User provisioned successfully!')
         }
         
-    } catch (error: any) {
+    } catch (error) {
         console.error('Save operation failed:', error)
-        
-        // Handle Laravel Form Requests (422 Unprocessable Content)
-        if (error.response?.status === 422) {
-            const laravelErrors = error.response.data.errors
+        const e = error as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
+
+        if (e.response?.status === 422) {
+            const laravelErrors = e.response.data?.errors ?? {}
             const mappedErrors: Record<string, string> = {}
             for (const key in laravelErrors) {
-                mappedErrors[key] = laravelErrors[key][0]
+                mappedErrors[key] = laravelErrors[key]?.[0] ?? ''
             }
             formErrors.value = mappedErrors
         } else {
-            // Handle fatal SQL crashes or 500 server errors
-            formErrors.value = { general: error.response?.data?.message || 'A server error occurred. Please try again.' }
+            formErrors.value = { general: e.response?.data?.message ?? 'A server error occurred. Please try again.' }
         }
     } finally {
         isSaving.value = false

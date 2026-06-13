@@ -16,10 +16,10 @@ export const createLabGroup = (cohortId: number, data: CreateLabGroupPayload) =>
     api.post<ApiResponse<LabGroup>>(`/v1/cohorts/${cohortId}/lab-groups`, data)
 
 export const assignStudents = (groupId: number, data: AssignStudentsPayload) =>
-    api.post<ApiResponse<any>>(`/v1/lab-groups/${groupId}/students`, data)
+    api.post<ApiResponse<unknown>>(`/v1/lab-groups/${groupId}/students`, data)
 
 export const assignInstructor = (groupId: number, data: AssignInstructorPayload) =>
-    api.post<ApiResponse<any>>(`/v1/lab-groups/${groupId}/instructors`, data)
+    api.post<ApiResponse<unknown>>(`/v1/lab-groups/${groupId}/instructors`, data)
 
 export const removeStudent = (groupId: number, studentId: number) =>
-    api.delete<ApiResponse<any>>(`/v1/lab-groups/${groupId}/students/${studentId}`)
+    api.delete<ApiResponse<unknown>>(`/v1/lab-groups/${groupId}/students/${studentId}`)

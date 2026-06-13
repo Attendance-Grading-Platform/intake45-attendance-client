@@ -29,7 +29,7 @@ const handleExcuseSubmit = async (payload: { sessionId: number; reason: string; 
     if (formRef.value) {
       formRef.value.clearForm()
     }
-  } catch (err) {
+  } catch {
     // Error is handled by the composable and shown in errorMsg
   }
 }
@@ -85,7 +85,7 @@ const getAttachmentUrl = (path: string) => {
         <ExcuseForm 
           ref="formRef"
           :is-submitting="isSubmitting"
-          :absent-sessions="absentSessions"
+          :absent-sessions="(absentSessions as any[])"
           @submit="handleExcuseSubmit"
         />
       </div>

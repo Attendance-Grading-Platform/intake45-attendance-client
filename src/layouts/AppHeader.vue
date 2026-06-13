@@ -49,19 +49,22 @@ async function handleLogout(): Promise<void> {
 }
 
 // ── Directive ──────────────────────────────────────────────────
+interface ClickOutsideEl extends HTMLElement {
+  clickOutsideEvent: (event: MouseEvent) => void
+}
+
 const vClickOutside = {
-  mounted(el: any, binding: any) {
+  mounted(el: ClickOutsideEl, binding: { value: (event: MouseEvent) => void }) {
     el.clickOutsideEvent = (event: MouseEvent) => {
-      if (!(el === event.target || el.contains(event.target))) {
+      if (!(el === event.target || el.contains(event.target as Node))) {
         binding.value(event)
       }
     }
-    // Added delay to avoid catching the click that opened the menu
     setTimeout(() => {
       document.addEventListener('click', el.clickOutsideEvent)
     }, 0)
   },
-  unmounted(el: any) {
+  unmounted(el: ClickOutsideEl) {
     document.removeEventListener('click', el.clickOutsideEvent)
   }
 }

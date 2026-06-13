@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useCohortStore } from '@/stores/cohort.store';
 
 
 const cohortStore = useCohortStore();
 
 onMounted(async () => {
-  await cohortStore.fetchCohorts();
-  const firstCohort = cohortStore.cohorts[0];
-  if (firstCohort) {
-    await cohortStore.fetchCohortStudents(firstCohort.id);
+  try {
+    await cohortStore.fetchCohorts();
+    const firstCohort = cohortStore.cohorts[0];
+    if (firstCohort) {
+      await cohortStore.fetchCohortStudents(firstCohort.id);
+    }
+  } catch (err) {
+    console.error('Failed to load instructor dashboard data:', err);
   }
 });
 
@@ -19,8 +23,8 @@ const activeCohortName = computed(() => {
 </script>
 
 <template>
-  <div class="bg-[#FFFFFF] p-[24px] rounded-[10px] border border-[#E0D4B8]">
-      
+  <div class="bg-[#FFFFFF] p-6 rounded-[10px] border border-[#E0D4B8]">
+
       <div class="mb-6">
         <h3 class="font-sans text-[11px] text-[#888888] uppercase tracking-[1.5px] mb-1">
           Instructor View
@@ -46,7 +50,7 @@ const activeCohortName = computed(() => {
           </thead>
           <tbody>
             <tr 
-              v-for="student in cohortStore.students" 
+              v-for="student in (cohortStore.students as any[])" 
               :key="student.id"
               class="border-b border-[#E0D4B8] last:border-b-0 hover:bg-[#FAFAFA] transition-colors"
             >
@@ -55,7 +59,7 @@ const activeCohortName = computed(() => {
               <td class="py-4 px-4 text-right">
                 <button 
                   @click="cohortStore.openStudentProfile(student.id, student.name, activeCohortName, 'General')"
-                  class="h-[32px] px-4 rounded-[6px] bg-[#000000] text-[#FFFFFF] font-sans text-[12px] hover:bg-[#111111] transition-colors"
+                  class="h-8 px-4 rounded-md bg-[#000000] text-[#FFFFFF] font-sans text-[12px] hover:bg-[#111111] transition-colors"
                 >
                   View Profile
                 </button>

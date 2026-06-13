@@ -73,7 +73,7 @@ function confirmCountChange() {
 }
 
 // ── Actions: Inline Editing ────────────────────────────────────
-function startEditName(group: any, index: number) {
+function startEditName(group: { name: string }, index: number) {
     editingGroupId.value = index
     editGroupName.value = group.name
 }
@@ -94,8 +94,8 @@ async function handleSave() {
     try {
         await apiSaveGroups()
         emit('saved')
-    } catch (err: any) {
-        saveError.value = err.message || 'Failed to save groups.'
+    } catch (err) {
+        saveError.value = (err as { message?: string }).message ?? 'Failed to save groups.'
     }
 }
 

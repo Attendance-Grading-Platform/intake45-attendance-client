@@ -3,19 +3,18 @@ import { onMounted, watch } from 'vue'
 import { useBilling } from '@/composables/useBilling'
 import { formatCurrency } from '@/utils/format'
 import BillingChart from '@/components/charts/BillingChart.vue'
-import { 
-  CreditCard, 
-  Users, 
-  Briefcase, 
-  GraduationCap, 
-  Calculator, 
-  Clock, 
+import {
+  CreditCard,
+  Users,
+  Briefcase,
+  GraduationCap,
+  Calculator,
+  Clock,
   RefreshCw,
-  Search,
-  ExternalLink,
   ChevronRight,
   Info
 } from '@lucide/vue'
+import type { BillingEntry } from '@/types/billing.types'
 
 const {
   cohorts,
@@ -24,7 +23,6 @@ const {
   loadingCohorts,
   loadingRollup,
   generating,
-  error,
   fetchCohorts,
   fetchRollup,
   generateRollup,
@@ -53,10 +51,10 @@ const handleGenerate = () => {
 
 // Instructor Details State
 import { ref } from 'vue'
-const selectedInstructor = ref<any>(null)
+const selectedInstructor = ref<BillingEntry | null>(null)
 const isDrawerOpen = ref(false)
 
-const openInstructorDetail = (instructor: any) => {
+const openInstructorDetail = (instructor: BillingEntry) => {
   selectedInstructor.value = instructor
   isDrawerOpen.value = true
 }
@@ -467,7 +465,7 @@ const openInstructorDetail = (instructor: any) => {
                 ({{ selectedInstructor.delivered_hours }} hrs × {{ selectedInstructor.hourly_rate }} EGP/h) = 
                 <b>{{ formatCurrency(selectedInstructor.total_amount) }}</b>
               </template>
-              <template v-else>
+              <template v-else-if="selectedInstructor">
                 {{ selectedInstructor.delivered_hours }} hrs × {{ selectedInstructor.hourly_rate }} EGP/h = 
                 <b>{{ formatCurrency(selectedInstructor.total_amount) }}</b>
               </template>

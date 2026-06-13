@@ -76,7 +76,7 @@ export function useLabGroups(cohortId: number) {
             unassigned.value = allStudents.filter(s => !seenStudentIds.has(s.id))
 
             isDirty.value = false
-        } catch (err: any) {
+        } catch (err) {
             console.error('Fetch lab groups failed:', err)
             errors.value.push('Failed to load lab group data.')
         } finally {
@@ -182,7 +182,7 @@ export function useLabGroups(cohortId: number) {
                 }
             }
             isDirty.value = false
-        } catch (err: any) {
+        } catch (err) {
             console.error('Save groups failed:', err)
             throw err
         } finally {

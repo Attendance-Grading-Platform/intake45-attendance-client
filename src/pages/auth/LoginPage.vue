@@ -63,10 +63,11 @@ const handleLogin = async () => {
     await authStore.login({ email: email.value, password: password.value });
     const role = authStore.user?.role || "student";
     router.push(`/${role.replace("_", "-")}/dashboard`);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Login attempt failed:", error);
-    const status = error.response?.status;
-    const message = error.response?.data?.message?.toLowerCase() || "";
+    const e = error as { response?: { status?: number; data?: { message?: string } } }
+    const status = e.response?.status;
+    const message = e.response?.data?.message?.toLowerCase() ?? "";
 
     if (status === 401) {
       errorState.value = 'invalid';
@@ -79,7 +80,7 @@ const handleLogin = async () => {
     } else if (status === 429) {
       errorState.value = 'rate-limited';
       serverError.value = "Too many login attempts. Please try again in a few minutes.";
-    } else if (!error.response) {
+    } else if (!(error as any).response) {
       errorState.value = 'connection';
       serverError.value = "Unable to connect to the server. Please check your internet.";
     } else {

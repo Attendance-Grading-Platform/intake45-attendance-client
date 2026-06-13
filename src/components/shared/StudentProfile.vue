@@ -44,7 +44,7 @@ const submitNote = async () => {
 import { computed } from "vue";
 
 const groupedGrades = computed(() => {
-  const groups: Record<string, any[]> = {};
+  const groups: Record<string, unknown[]> = {};
   const grades = cohortStore.analytics?.grades_breakdown;
   
   if (!grades) return groups;
@@ -221,7 +221,7 @@ const groupedGrades = computed(() => {
             </summary>
             <div class="p-4 bg-[#FAFAFA] space-y-3">
               <div 
-                v-for="(grade, idx) in grades" 
+                v-for="(grade, idx) in (grades as any[])" 
                 :key="idx"
                 class="flex justify-between items-center border-b border-[#E0D4B8] last:border-0 pb-3 last:pb-0"
               >

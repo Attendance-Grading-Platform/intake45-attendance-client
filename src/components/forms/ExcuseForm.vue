@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const props = defineProps<{
+interface AbsentSession {
+  id: number
+  session_date: string
+  engagement?: { type?: string }
+}
+
+defineProps<{
   isSubmitting: boolean
-  absentSessions: any[]
+  absentSessions: AbsentSession[]
 }>()
 
 const emit = defineEmits<{

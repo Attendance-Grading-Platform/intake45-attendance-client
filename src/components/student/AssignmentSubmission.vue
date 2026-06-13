@@ -144,7 +144,7 @@ const emit = defineEmits<{
   'submit-payload': [formData: FormData]
 }>();
 
-const props = defineProps<{
+defineProps<{
   isSubmitting?: boolean
 }>();
 

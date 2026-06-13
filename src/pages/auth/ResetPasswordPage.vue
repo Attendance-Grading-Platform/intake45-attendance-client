@@ -79,8 +79,8 @@ const handleReset = async () => {
     });
     isSuccess.value = true;
     startCountdown();
-  } catch (error: any) {
-    const message = error.response?.data?.message?.toLowerCase() || "";
+  } catch (error) {
+    const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message?.toLowerCase() ?? "";
     if (message.includes("expired") || message.includes("invalid")) {
       statusError.value = "Your reset link has expired or is invalid. Please request a new one.";
     } else {
