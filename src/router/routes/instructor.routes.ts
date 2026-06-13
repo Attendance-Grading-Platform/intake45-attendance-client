@@ -34,6 +34,11 @@ const routes: RouteRecordRaw[] = [
                 name: 'instructor-deliverables',
                 component: () => import('@/pages/instructor/DeliverablesPage.vue'),
             },
+            {
+                path: 'profile',
+                name: 'instructor-profile',
+                component: () => import('@/pages/shared/ProfilePage.vue'),
+            },
         ],
     },
 ]
