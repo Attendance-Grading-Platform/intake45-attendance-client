@@ -13,6 +13,7 @@ export async function authGuard(
         try {
             await auth.fetchUser()
         } catch (error) {
+            auth.logout()
             return { name: 'login' }
         }
     }
